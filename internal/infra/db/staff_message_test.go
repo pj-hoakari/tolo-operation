@@ -109,12 +109,22 @@ func TestPostgresStaffMessageRepositoryRevoke(t *testing.T) {
 	revoked := createMessage(t, repo, tenant, event, domain.AudienceGuest, baseTime)
 	kept := createMessage(t, repo, tenant, event, domain.AudienceGuest, baseTime.Add(time.Minute))
 
-	if err := repo.Revoke(ctx, tenant, event, revoked.ID, baseTime.Add(time.Hour)); err != nil {
+	audience, first, err := repo.Revoke(ctx, tenant, event, revoked.ID, baseTime.Add(time.Hour))
+	if err != nil {
 		t.Fatalf("Revoke: %v", err)
 	}
 
-	if err := repo.Revoke(ctx, tenant, event, revoked.ID, baseTime.Add(2*time.Hour)); err != nil {
+	if audience != domain.AudienceGuest || !first {
+		t.Errorf("Revoke = %q, %v, want the guest audience revoked by this call", audience, first)
+	}
+
+	audience, again, err := repo.Revoke(ctx, tenant, event, revoked.ID, baseTime.Add(2*time.Hour))
+	if err != nil {
 		t.Fatalf("Revoke again: %v", err)
+	}
+
+	if audience != domain.AudienceGuest || again {
+		t.Errorf("Revoke again = %q, %v, want the guest audience already revoked", audience, again)
 	}
 
 	var revokedAt time.Time
@@ -158,7 +168,7 @@ func TestPostgresStaffMessageRepositoryRevokeIsScopedToTenantAndEvent(t *testing
 	}
 
 	for _, tt := range tests {
-		err := repo.Revoke(context.Background(), tt.tenant, tt.event, tt.id, baseTime)
+		_, _, err := repo.Revoke(context.Background(), tt.tenant, tt.event, tt.id, baseTime)
 		if !errors.Is(err, repository.ErrStaffMessageNotFound) {
 			t.Errorf("%s: Revoke error = %v, want %v", tt.name, err, repository.ErrStaffMessageNotFound)
 		}

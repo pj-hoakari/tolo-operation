@@ -22,7 +22,7 @@ func newDeliveryCoordination(t *testing.T) (*application.DeliveryCoordinationSer
 	states := NewMockConnectionStateRepository(controller)
 	feedback := NewMockFeedbackRepository(controller)
 
-	return application.NewDeliveryCoordinationService(states, feedback), states, feedback
+	return application.NewDeliveryCoordinationService(states, feedback, NewMockOutboxRepository(controller), &fakeNotifier{}), states, feedback
 }
 
 func TestUpdateConnectionStateSavesTheCallersDeviceInTheRequestEvent(t *testing.T) {

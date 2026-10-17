@@ -353,7 +353,7 @@ func TestInternalProcedureAcceptsOnlyServiceTokens(t *testing.T) {
 		config jwtgen.Config
 		want   connectrpc.Code
 	}{
-		{"accepts a service token", jwtgen.Config{TokenUse: internaljwt.TokenUseService, Subject: "tolo-observation"}, connectrpc.CodeUnimplemented},
+		{"accepts a service token", jwtgen.Config{TokenUse: internaljwt.TokenUseService, Subject: "tolo-observation"}, 0},
 		{"rejects an event token", jwtgen.Config{
 			TokenUse:       internaljwt.TokenUseEventAccess,
 			Subject:        testSubject,
@@ -371,6 +371,10 @@ func TestInternalProcedureAcceptsOnlyServiceTokens(t *testing.T) {
 			client := operationv1connect.NewDeliveryCoordinationServiceClient(newClient(newTestServer(t, newTestHandler(t, keys))))
 
 			_, err := client.RequestProposalDelivery(authorized(authorization), &operationv1.RequestProposalDeliveryRequest{EventId: testEventPublicID})
+			if err == nil && tt.want == 0 {
+				return
+			}
+
 			if got := connectrpc.CodeOf(err); got != tt.want {
 				t.Fatalf("RequestProposalDelivery() error code = %v, want %v", got, tt.want)
 			}

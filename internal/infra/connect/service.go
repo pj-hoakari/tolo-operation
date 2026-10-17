@@ -2,8 +2,11 @@ package connect
 
 import (
 	"context"
+	"fmt"
+	"math"
 	"time"
 
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	kernelv1 "github.com/pj-hoakari/tolo-kernel-proto/gen/tolo/kernel/v1"
@@ -261,6 +264,63 @@ func NewDeliveryCoordinationService(useCases application.DeliveryCoordinationUse
 		UnimplementedDeliveryCoordinationServiceHandler: operationv1connect.UnimplementedDeliveryCoordinationServiceHandler{},
 		useCases: useCases,
 	}
+}
+
+var protoNames = protojson.MarshalOptions{UseProtoNames: true}
+
+func (s *DeliveryCoordinationService) RequestProposalDelivery(
+	ctx context.Context,
+	req *operationv1.RequestProposalDeliveryRequest,
+) (*operationv1.RequestProposalDeliveryResponse, error) {
+	input := application.RequestProposalDeliveryInput{
+		TenantID:        req.GetTenantId(),
+		EventID:         req.GetEventId(),
+		ProposalKind:    "",
+		ProposalContent: nil,
+	}
+
+	var (
+		content []byte
+		err     error
+	)
+
+	switch payload := req.GetPayload().(type) {
+	case *operationv1.RequestProposalDeliveryRequest_FlowProposals:
+		input.ProposalKind = domain.ProposalFlowProposals
+		content, err = protoNames.Marshal(payload.FlowProposals)
+	case *operationv1.RequestProposalDeliveryRequest_LineGuidance:
+		input.ProposalKind = domain.ProposalLineGuidance
+		content, err = protoNames.Marshal(payload.LineGuidance)
+	}
+
+	if err != nil {
+		return nil, connectError(ctx, fmt.Errorf("encode proposal payload: %w", err))
+	}
+
+	input.ProposalContent = content
+
+	result, err := s.useCases.RequestProposalDelivery(ctx, input)
+	if err != nil {
+		return nil, connectError(ctx, err)
+	}
+
+	return &operationv1.RequestProposalDeliveryResponse{
+		DeliveryId:        string(result.DeliveryID),
+		RealtimeCount:     protoCount(result.RealtimeCount),
+		NotificationCount: protoCount(result.NotificationCount),
+	}, nil
+}
+
+func protoCount(n int) int32 {
+	if n < 0 {
+		return 0
+	}
+
+	if n > math.MaxInt32 {
+		return math.MaxInt32
+	}
+
+	return int32(n)
 }
 
 func (s *DeliveryCoordinationService) UpdateConnectionState(
