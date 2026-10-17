@@ -2,6 +2,7 @@ package connect
 
 import (
 	"context"
+	"time"
 
 	"google.golang.org/protobuf/types/known/timestamppb"
 
@@ -241,12 +242,65 @@ func newProtoReassignment(reassignment domain.Reassignment) *operationv1.Reassig
 
 type DeliveryCoordinationService struct {
 	operationv1connect.UnimplementedDeliveryCoordinationServiceHandler
+
+	useCases application.DeliveryCoordinationUseCases
 }
 
-func NewDeliveryCoordinationService() *DeliveryCoordinationService {
+func NewDeliveryCoordinationService(useCases application.DeliveryCoordinationUseCases) *DeliveryCoordinationService {
 	return &DeliveryCoordinationService{
 		UnimplementedDeliveryCoordinationServiceHandler: operationv1connect.UnimplementedDeliveryCoordinationServiceHandler{},
+		useCases: useCases,
 	}
+}
+
+func (s *DeliveryCoordinationService) UpdateConnectionState(
+	ctx context.Context,
+	req *operationv1.UpdateConnectionStateRequest,
+) (*operationv1.UpdateConnectionStateResponse, error) {
+	err := s.useCases.UpdateConnectionState(ctx, application.UpdateConnectionStateInput{
+		UserID:    req.GetUserId(),
+		DeviceID:  req.GetDeviceId(),
+		Connected: req.GetConnected(),
+		At:        timestampTime(req.GetAt()),
+	})
+	if err != nil {
+		return nil, connectError(ctx, err)
+	}
+
+	return &operationv1.UpdateConnectionStateResponse{}, nil
+}
+
+func (s *DeliveryCoordinationService) RecordFeedbackValues(
+	ctx context.Context,
+	req *operationv1.RecordFeedbackValuesRequest,
+) (*operationv1.RecordFeedbackValuesResponse, error) {
+	entries := make([]domain.FeedbackEntry, 0, len(req.GetValues().GetEntries()))
+	for _, entry := range req.GetValues().GetEntries() {
+		entries = append(entries, domain.FeedbackEntry{
+			AttributeTag: entry.GetAttributeTag(),
+			Kind:         entry.GetKind(),
+			Value:        entry.GetValue(),
+		})
+	}
+
+	err := s.useCases.RecordFeedbackValues(ctx, application.RecordFeedbackValuesInput{
+		EventID:    req.GetEventId(),
+		ComputedAt: timestampTime(req.GetValues().GetComputedAt()),
+		Entries:    entries,
+	})
+	if err != nil {
+		return nil, connectError(ctx, err)
+	}
+
+	return &operationv1.RecordFeedbackValuesResponse{}, nil
+}
+
+func timestampTime(value *timestamppb.Timestamp) time.Time {
+	if value == nil {
+		return time.Time{}
+	}
+
+	return value.AsTime()
 }
 
 type DigestService struct {

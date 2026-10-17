@@ -31,6 +31,12 @@ var clientErrors = []struct {
 	{domain.ErrTargetRequired, connectrpc.CodeInvalidArgument, "target is required"},
 	{domain.ErrTargetIDRequired, connectrpc.CodeInvalidArgument, "target ID is required"},
 	{domain.ErrInvalidRoutePosition, connectrpc.CodeInvalidArgument, "route_position must be from 0 to 1 on a route anchor"},
+	{domain.ErrUserRequired, connectrpc.CodeInvalidArgument, "user_id is required"},
+	{domain.ErrDeviceRequired, connectrpc.CodeInvalidArgument, "device_id is required"},
+	{domain.ErrStateTimeRequired, connectrpc.CodeInvalidArgument, "at is required"},
+	{domain.ErrComputedAtRequired, connectrpc.CodeInvalidArgument, "values.computed_at is required"},
+	{domain.ErrFeedbackKindRequired, connectrpc.CodeInvalidArgument, "feedback kind is required"},
+	{domain.ErrFeedbackValueNotFinite, connectrpc.CodeInvalidArgument, "feedback value must be finite"},
 	{repository.ErrStaffMessageNotFound, connectrpc.CodeNotFound, "staff message not found"},
 	{repository.ErrReassignmentNotFound, connectrpc.CodeNotFound, "reassignment not found"},
 	{tenantctx.ErrMissing, connectrpc.CodePermissionDenied, "tenant ID is missing from the token"},
@@ -38,6 +44,7 @@ var clientErrors = []struct {
 	{tenantctx.ErrMismatch, connectrpc.CodePermissionDenied, "tenant ID does not match the token"},
 	{tenantctx.ErrEventMissing, connectrpc.CodePermissionDenied, "event ID is missing from the token"},
 	{tenantctx.ErrEventMismatch, connectrpc.CodePermissionDenied, "event ID does not match the token"},
+	{application.ErrForeignUser, connectrpc.CodePermissionDenied, "user_id does not match the token"},
 	{application.ErrGuestAudienceOnly, connectrpc.CodePermissionDenied, "service callers may list guest messages only"},
 }
 

@@ -67,6 +67,7 @@ func newTestVerifier(t *testing.T, keys internaljwt.JWKS) *verifier.Verifier {
 type testUseCases struct {
 	staffCommunication application.StaffCommunicationUseCases
 	operationControl   application.OperationControlUseCases
+	delivery           application.DeliveryCoordinationUseCases
 }
 
 func (u testUseCases) routes(t *testing.T, tokenVerifier interceptor.TokenVerifier) (func(*http.ServeMux), error) {
@@ -80,7 +81,11 @@ func (u testUseCases) routes(t *testing.T, tokenVerifier interceptor.TokenVerifi
 		u.operationControl = &fakeOperationControl{}
 	}
 
-	return RoutesWithVerifier(tokenVerifier, u.staffCommunication, u.operationControl)
+	if u.delivery == nil {
+		u.delivery = &fakeDeliveryCoordination{}
+	}
+
+	return RoutesWithVerifier(tokenVerifier, u.staffCommunication, u.operationControl, u.delivery)
 }
 
 // newTestHandler builds a handler serving the production service routes wired
@@ -216,7 +221,7 @@ func TestRoutesWithJWTSettings(t *testing.T) {
 		settings := DefaultJWTSettings()
 		settings.JWKSURL = newTestJWKSURL(t, keys)
 
-		routes, err := RoutesWithJWTSettings(settings, &fakeStaffCommunication{}, &fakeOperationControl{})
+		routes, err := RoutesWithJWTSettings(settings, &fakeStaffCommunication{}, &fakeOperationControl{}, &fakeDeliveryCoordination{})
 		if err != nil {
 			t.Fatalf("RoutesWithJWTSettings() error = %v", err)
 		}
@@ -236,7 +241,7 @@ func TestRoutesWithJWTSettings(t *testing.T) {
 		settings := DefaultJWTSettings()
 		settings.JWKSURL = ""
 
-		_, err := RoutesWithJWTSettings(settings, &fakeStaffCommunication{}, &fakeOperationControl{})
+		_, err := RoutesWithJWTSettings(settings, &fakeStaffCommunication{}, &fakeOperationControl{}, &fakeDeliveryCoordination{})
 		if !errors.Is(err, jwks.ErrMissingURL) {
 			t.Fatalf("RoutesWithJWTSettings() error = %v, want %v", err, jwks.ErrMissingURL)
 		}
