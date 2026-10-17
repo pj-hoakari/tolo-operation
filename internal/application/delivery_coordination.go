@@ -80,16 +80,12 @@ func (s *DeliveryCoordinationService) UpdateConnectionState(ctx context.Context,
 }
 
 func (s *DeliveryCoordinationService) RecordFeedbackValues(ctx context.Context, input RecordFeedbackValuesInput) error {
-	tenantPublicID, err := requestTenant(ctx, input.TenantID)
+	tenantPublicID, eventID, err := requestScope(ctx, input.TenantID, input.EventID)
 	if err != nil {
 		return err
 	}
 
-	if err := tenantctx.EnsureEvent(ctx, input.EventID); err != nil {
-		return err
-	}
-
-	values, err := domain.NewFeedbackValues(tenantPublicID, input.EventID, input.ComputedAt, input.Entries)
+	values, err := domain.NewFeedbackValues(tenantPublicID, eventID, input.ComputedAt, input.Entries)
 	if err != nil {
 		return err
 	}

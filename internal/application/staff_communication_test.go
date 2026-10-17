@@ -68,6 +68,7 @@ func TestSendStaffMessage(t *testing.T) {
 	})
 
 	message, err := service.SendStaffMessage(withEventToken(testEventPublicID), application.SendStaffMessageInput{
+		TenantID: testTenantPublicID,
 		EventID:  testEventPublicID,
 		Audience: domain.AudienceBoth,
 		Body:     "gate B is open",
@@ -94,6 +95,7 @@ func TestShareGuidanceInfoStoresAStaffOnlyGuidanceMessage(t *testing.T) {
 	messages.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil)
 
 	message, err := service.ShareGuidanceInfo(withEventToken(testEventPublicID), application.ShareGuidanceInfoInput{
+		TenantID:        testTenantPublicID,
 		EventID:         testEventPublicID,
 		Body:            "one way from A to B",
 		RelatedRouteIDs: []string{"route-a"},
@@ -108,24 +110,6 @@ func TestShareGuidanceInfoStoresAStaffOnlyGuidanceMessage(t *testing.T) {
 	}
 }
 
-func TestStaffMessageCommandsRejectAnotherEvent(t *testing.T) {
-	t.Parallel()
-
-	service, _ := newStaffCommunication(t)
-	ctx := withEventToken(testEventPublicID)
-
-	_, sendErr := service.SendStaffMessage(ctx, application.SendStaffMessageInput{EventID: otherEventPublicID, Audience: domain.AudienceStaff, Body: "hi"})
-	_, shareErr := service.ShareGuidanceInfo(ctx, application.ShareGuidanceInfoInput{EventID: otherEventPublicID, Body: "hi"})
-	revokeErr := service.RevokeStaffMessage(ctx, application.RevokeStaffMessageInput{EventID: otherEventPublicID, MessageID: testMessageID})
-	_, listErr := service.ListStaffMessages(ctx, application.ListStaffMessagesInput{TenantID: testTenantPublicID, EventID: otherEventPublicID})
-
-	for name, err := range map[string]error{"send": sendErr, "share": shareErr, "revoke": revokeErr, "list": listErr} {
-		if !errors.Is(err, tenantctx.ErrEventMismatch) {
-			t.Errorf("%s error = %v, want %v", name, err, tenantctx.ErrEventMismatch)
-		}
-	}
-}
-
 func TestRevokeStaffMessage(t *testing.T) {
 	t.Parallel()
 
@@ -133,6 +117,7 @@ func TestRevokeStaffMessage(t *testing.T) {
 	messages.EXPECT().Revoke(gomock.Any(), testTenantPublicID, testEventPublicID, domain.MessageID(testMessageID), testNow).Return(nil)
 
 	err := service.RevokeStaffMessage(withEventToken(testEventPublicID), application.RevokeStaffMessageInput{
+		TenantID:  testTenantPublicID,
 		EventID:   testEventPublicID,
 		MessageID: testMessageID,
 	})
@@ -148,6 +133,7 @@ func TestRevokeStaffMessageReportsAnUnknownMessage(t *testing.T) {
 	messages.EXPECT().Revoke(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(repository.ErrStaffMessageNotFound)
 
 	err := service.RevokeStaffMessage(withEventToken(testEventPublicID), application.RevokeStaffMessageInput{
+		TenantID:  testTenantPublicID,
 		EventID:   testEventPublicID,
 		MessageID: testMessageID,
 	})
@@ -209,40 +195,77 @@ func TestListStaffMessagesLetsServiceCallersReadGuestMessagesOnly(t *testing.T) 
 	}
 }
 
-func TestListStaffMessagesRequiresAnEvent(t *testing.T) {
+func TestStaffCommunicationChecksTheRequestScope(t *testing.T) {
 	t.Parallel()
 
-	service, _ := newStaffCommunication(t)
+	calls := map[string]func(*application.StaffCommunicationService, context.Context, string, string) error{
+		"send": func(service *application.StaffCommunicationService, ctx context.Context, tenantID, eventID string) error {
+			_, err := service.SendStaffMessage(ctx, application.SendStaffMessageInput{
+				TenantID: tenantID, EventID: eventID, Audience: domain.AudienceStaff, Body: "hi",
+			})
 
-	_, err := service.ListStaffMessages(withServiceToken(), application.ListStaffMessagesInput{EventID: " ", Audience: domain.AudienceGuest})
-	if !errors.Is(err, domain.ErrEventRequired) {
-		t.Errorf("ListStaffMessages error = %v, want %v", err, domain.ErrEventRequired)
+			return err
+		},
+		"revoke": func(service *application.StaffCommunicationService, ctx context.Context, tenantID, eventID string) error {
+			return service.RevokeStaffMessage(ctx, application.RevokeStaffMessageInput{TenantID: tenantID, EventID: eventID, MessageID: testMessageID})
+		},
+		"share": func(service *application.StaffCommunicationService, ctx context.Context, tenantID, eventID string) error {
+			_, err := service.ShareGuidanceInfo(ctx, application.ShareGuidanceInfoInput{TenantID: tenantID, EventID: eventID, Body: "hi"})
+
+			return err
+		},
+		"list": func(service *application.StaffCommunicationService, ctx context.Context, tenantID, eventID string) error {
+			_, err := service.ListStaffMessages(ctx, application.ListStaffMessagesInput{TenantID: tenantID, EventID: eventID, Audience: domain.AudienceStaff})
+
+			return err
+		},
 	}
-}
-
-func TestListStaffMessagesChecksTheRequestTenant(t *testing.T) {
-	t.Parallel()
 
 	tests := []struct {
 		name     string
-		ctx      context.Context
 		tenantID string
+		eventID  string
 		want     error
 	}{
-		{"missing tenant", withServiceToken(), " ", domain.ErrTenantRequired},
-		{"tenant other than the token's", withEventToken(testEventPublicID), otherTenantPublicID, tenantctx.ErrMismatch},
+		{"missing tenant", " ", testEventPublicID, domain.ErrTenantRequired},
+		{"missing event", testTenantPublicID, " ", domain.ErrEventRequired},
+		{"tenant other than the token's", otherTenantPublicID, testEventPublicID, tenantctx.ErrMismatch},
+		{"event other than the token's", testTenantPublicID, otherEventPublicID, tenantctx.ErrEventMismatch},
+	}
+
+	for name, call := range calls {
+		for _, tt := range tests {
+			service, _ := newStaffCommunication(t)
+
+			if err := call(service, withEventToken(testEventPublicID), tt.tenantID, tt.eventID); !errors.Is(err, tt.want) {
+				t.Errorf("%s with %s: error = %v, want %v", name, tt.name, err, tt.want)
+			}
+		}
+	}
+}
+
+func TestListStaffMessagesRequiresTheScopeFromServiceCallers(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		tenantID string
+		eventID  string
+		want     error
+	}{
+		{" ", testEventPublicID, domain.ErrTenantRequired},
+		{testTenantPublicID, " ", domain.ErrEventRequired},
 	}
 
 	for _, tt := range tests {
 		service, _ := newStaffCommunication(t)
 
-		_, err := service.ListStaffMessages(tt.ctx, application.ListStaffMessagesInput{
+		_, err := service.ListStaffMessages(withServiceToken(), application.ListStaffMessagesInput{
 			TenantID: tt.tenantID,
-			EventID:  testEventPublicID,
+			EventID:  tt.eventID,
 			Audience: domain.AudienceGuest,
 		})
 		if !errors.Is(err, tt.want) {
-			t.Errorf("%s: ListStaffMessages error = %v, want %v", tt.name, err, tt.want)
+			t.Errorf("ListStaffMessages(%q, %q) error = %v, want %v", tt.tenantID, tt.eventID, err, tt.want)
 		}
 	}
 }

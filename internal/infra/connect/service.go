@@ -31,6 +31,7 @@ func (s *StaffCommunicationService) SendStaffMessage(
 	req *operationv1.SendStaffMessageRequest,
 ) (*operationv1.StaffMessage, error) {
 	message, err := s.useCases.SendStaffMessage(ctx, application.SendStaffMessageInput{
+		TenantID: req.GetTenantId(),
 		EventID:  req.GetEventId(),
 		Audience: domainAudience(req.GetAudience()),
 		Body:     req.GetBody(),
@@ -47,6 +48,7 @@ func (s *StaffCommunicationService) RevokeStaffMessage(
 	req *operationv1.RevokeStaffMessageRequest,
 ) (*operationv1.RevokeStaffMessageResponse, error) {
 	err := s.useCases.RevokeStaffMessage(ctx, application.RevokeStaffMessageInput{
+		TenantID:  req.GetTenantId(),
 		EventID:   req.GetEventId(),
 		MessageID: req.GetMessageId(),
 	})
@@ -62,6 +64,7 @@ func (s *StaffCommunicationService) ShareGuidanceInfo(
 	req *operationv1.ShareGuidanceInfoRequest,
 ) (*operationv1.StaffMessage, error) {
 	message, err := s.useCases.ShareGuidanceInfo(ctx, application.ShareGuidanceInfoInput{
+		TenantID:        req.GetTenantId(),
 		EventID:         req.GetEventId(),
 		Body:            req.GetBody(),
 		RelatedRouteIDs: req.GetRelatedRouteIds(),
