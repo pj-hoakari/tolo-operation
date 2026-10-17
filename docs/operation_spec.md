@@ -97,10 +97,12 @@ message SendStaffMessageRequest {
   string event_id = 1;
   Audience audience = 2;
   string body = 3;
+  string tenant_id = 4;  // 必須。event_id の属するテナント
 }
 message RevokeStaffMessageRequest {
   string event_id = 1;
   string message_id = 2;
+  string tenant_id = 3;  // 必須。event_id の属するテナント
 }
 message RevokeStaffMessageResponse {}
 
@@ -108,6 +110,7 @@ message ShareGuidanceInfoRequest {
   string event_id = 1;
   string body = 2;
   repeated string related_route_ids = 3;  // 共有する誘導の対象
+  string tenant_id = 4;  // 必須。event_id の属するテナント
 }
 message ListStaffMessagesRequest {
   string event_id = 1;
@@ -145,12 +148,16 @@ message DirectReassignmentRequest {
     string gate_point_id = 4;
     tolo.kernel.v1.GraphAnchor anchor = 5;
   }
+  string tenant_id = 6;  // 必須。event_id の属するテナント
 }
 message ApplyReassignmentRequest {
   string reassignment_id = 1;
+  string event_id = 2;
+  string tenant_id = 3;  // 必須。event_id の属するテナント
 }
 message ListReassignmentsRequest {
   string event_id = 1;
+  string tenant_id = 2;  // 必須。event_id の属するテナント
 }
 message ListReassignmentsResponse {
   repeated Reassignment reassignments = 1;
@@ -164,6 +171,7 @@ message RequestProposalDeliveryRequest {
     FlowProposals flow_proposals = 2;
     LineGuidance line_guidance = 3;
   }
+  string tenant_id = 4;  // 必須。event_id の属するテナント
 }
 message RequestProposalDeliveryResponse {
   string delivery_id = 1;        // realtime-delivery へ publish した DeliveryOrder の ID（本サービスが UUIDv7 で採番）
@@ -323,6 +331,8 @@ message UpdateConnectionStateRequest {
   string device_id = 2;
   bool connected = 3;
   google.protobuf.Timestamp at = 4;
+  string event_id = 5;
+  string tenant_id = 6;  // 必須。event_id の属するテナント
 }
 message UpdateConnectionStateResponse {}
 
@@ -330,6 +340,7 @@ message GetHistoryDigestRequest {
   string event_id = 1;
   google.protobuf.Timestamp from = 2;
   google.protobuf.Timestamp to = 3;
+  string tenant_id = 4;  // 必須。event_id の属するテナント
 }
 // 履歴ダイジェスト: 最小の構造化。種別の追加は kind の拡張で吸収する
 message HistoryDigest {
@@ -357,9 +368,17 @@ message DigestEntry {
   Guest Service は自 DB に保持し、ゲストアクセス時に本サービスへ問い合わせない
 - 取り下げ（RevokeStaffMessage）は、audience が GUEST を含む場合に `revoked_message_ids` として同トピックへ publish する
   ListStaffMessages は取り下げ済みメッセージを返さない。復旧 pull の突き合わせでは、返却されるのは有効メッセージの全量であり、受信側は返却に含まれない保持中の message_id を取り下げ扱いにする
-- ListStaffMessages と RecordFeedbackValues は、対象のテナントとイベントをリクエストの `tenant_id` と `event_id` で受け取る（ADR-0103）
-  `tenant_id` が空の要求は `invalid_argument` を返す。クレームに `tenant_id`／`event_id` があればリクエストと突合し、不一致は `permission_denied` を返す
-  マシン起点の `token_use=service`（Guest Service の復旧 pull、観測サイクルからのフィードバック値）はクレームを持たず、突合できない。両メソッドはこの場合に境界の強制を要さないメソッドとし（service_gateway.md の「サービス側の検証規約」、ADR-0102）、`event_id` が `tenant_id` に属するかを確かめずに、`tenant_id` と `event_id` の組で区切った区画だけを読み書きする
+- 全 RPC は対象のテナントとイベントをリクエストの `tenant_id` と `event_id` で受け取る（ADR-0040）
+  `tenant_id` か `event_id` が空の要求は `invalid_argument` を返す。クレームに `tenant_id`／`event_id` があればリクエストと突合し、不一致は `permission_denied` を返す
+  ApplyReassignment は、`reassignment_id` の配置替えが `event_id` のイベントのものでなければ `not_found` を返す
+  UpdateConnectionState は、`user_id` がクレームの `sub` と一致しなければ `permission_denied` を返す
+- マシン起点の `token_use=service` で呼ばれる ListStaffMessages（Guest Service の復旧 pull）、RecordFeedbackValues と RequestProposalDelivery（観測サイクル）はクレームを持たず、突合できない。3 つのメソッドはこの場合に境界の強制を要さないメソッドとし（service_gateway.md の「サービス側の検証規約」、ADR-0102、ADR-0103）、`event_id` が `tenant_id` に属するかを確かめずに、`tenant_id` と `event_id` の組で区切った区画だけを読み書きする
+  組を誤った RequestProposalDelivery は、宛先のスタッフが見つからず、どこにも配送しない
+- スタッフメッセージの本文は前後の空白を除いて 1 文字以上 2000 文字以下とする（文字数は Unicode のコードポイントで数える）。満たさない要求は `invalid_argument` を返す
+- 取り下げ（RevokeStaffMessage）は、`events.operate` を持つスタッフなら送信者でなくてもできる。誤送や不要になった案内を、送信者が不在でも撤回できるようにするためである
+- ListStaffMessages の audience による絞り込みは次のとおりとする。並びは送信時刻の古い順
+  STAFF はスタッフ宛てと両方宛て、GUEST はゲスト宛てと両方宛て、BOTH は両方宛てだけ、UNSPECIFIED はすべてを返す
+- ListReassignments は、スタッフごとに指示時刻が最も新しい配置替えを 1 件ずつ返す（配置の現況）
 - publish（`guest-messages`・`realtime-delivery`）にはイベント単位の順序キーを付与する（トピック規約。spec-base/README.md）
 - 提案配信の宛先はスタッフのみ。ゲストへの誘導情報は、提案を受けたスタッフがゲスト向けメッセージとして手動配信する（システムによる自動転送はしない）
 - テナント内集約は保護境界内に閉じる。境界外（参照値集約）へ出すのは匿名化済みフィードバックのみ
