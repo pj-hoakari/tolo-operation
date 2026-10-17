@@ -72,11 +72,13 @@ func (mr *MockStaffMessageRepositoryMockRecorder) ListActive(ctx, tenantPublicID
 }
 
 // Revoke mocks base method.
-func (m *MockStaffMessageRepository) Revoke(ctx context.Context, tenantPublicID, eventID string, id domain.MessageID, revokedAt time.Time) error {
+func (m *MockStaffMessageRepository) Revoke(ctx context.Context, tenantPublicID, eventID string, id domain.MessageID, revokedAt time.Time) (domain.Audience, bool, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Revoke", ctx, tenantPublicID, eventID, id, revokedAt)
-	ret0, _ := ret[0].(error)
-	return ret0
+	ret0, _ := ret[0].(domain.Audience)
+	ret1, _ := ret[1].(bool)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
 }
 
 // Revoke indicates an expected call of Revoke.

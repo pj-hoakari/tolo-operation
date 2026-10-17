@@ -20,12 +20,23 @@ const (
 // deadlock or a serialization failure. No work of the transaction was kept and
 // nothing is wrong with the request itself, so the operation can be retried.
 // It is joined to the error that failed, which stays available to errors.Is
-// and errors.As. A Connect handler that runs a transaction should answer it
-// with connect.CodeAborted; this template does not wire that yet because no
-// RPC runs a transaction.
+// and errors.As. A Connect handler that runs a transaction answers it with
+// connect.CodeAborted.
 var ErrTransactionAborted = errors.New("transaction aborted; retry")
 
 type transactionKey struct{}
+
+type PostgresTransactor struct {
+	db *sqlx.DB
+}
+
+func NewPostgresTransactor(db *sqlx.DB) *PostgresTransactor {
+	return &PostgresTransactor{db: db}
+}
+
+func (t *PostgresTransactor) WithinTransaction(ctx context.Context, fn func(context.Context) error) error {
+	return RunInTransaction(ctx, t.db, fn)
+}
 
 // RunInTransaction runs fn inside one database transaction on pool. The
 // transaction travels in the context handed to fn, and repositories run every

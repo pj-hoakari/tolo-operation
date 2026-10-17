@@ -9,6 +9,7 @@ import (
 
 	"github.com/pj-hoakari/tolo-operation/internal/application"
 	"github.com/pj-hoakari/tolo-operation/internal/domain"
+	dbinfra "github.com/pj-hoakari/tolo-operation/internal/infra/db"
 	"github.com/pj-hoakari/tolo-operation/internal/repository"
 	"github.com/pj-hoakari/tolo-operation/internal/tenantctx"
 )
@@ -40,6 +41,7 @@ var clientErrors = []struct {
 	{domain.ErrFeedbackValueNotFinite, connectrpc.CodeInvalidArgument, "feedback value must be finite"},
 	{repository.ErrStaffMessageNotFound, connectrpc.CodeNotFound, "staff message not found"},
 	{repository.ErrReassignmentNotFound, connectrpc.CodeNotFound, "reassignment not found"},
+	{dbinfra.ErrTransactionAborted, connectrpc.CodeAborted, "transaction aborted; retry"},
 	{tenantctx.ErrSubjectMissing, connectrpc.CodePermissionDenied, "subject is missing from the token"},
 	{tenantctx.ErrMismatch, connectrpc.CodePermissionDenied, "tenant ID does not match the token"},
 	{tenantctx.ErrEventMissing, connectrpc.CodePermissionDenied, "event ID is missing from the token"},

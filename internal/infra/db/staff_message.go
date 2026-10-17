@@ -2,6 +2,8 @@ package db
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"encoding/json"
 	"fmt"
 	"time"
@@ -56,26 +58,36 @@ func (r *PostgresStaffMessageRepository) Revoke(
 	tenantPublicID, eventID string,
 	id domain.MessageID,
 	revokedAt time.Time,
-) error {
-	result, err := Executor(ctx, r.db).ExecContext(ctx, `
+) (domain.Audience, bool, error) {
+	var audience string
+
+	err := sqlx.GetContext(ctx, Executor(ctx, r.db), &audience, `
 		UPDATE staff_messages
-		SET revoked_at = COALESCE(revoked_at, $4)
-		WHERE tenant_public_id = $1 AND event_id = $2 AND message_id = $3`,
+		SET revoked_at = $4
+		WHERE tenant_public_id = $1 AND event_id = $2 AND message_id = $3 AND revoked_at IS NULL
+		RETURNING audience`,
 		tenantPublicID, eventID, string(id), revokedAt)
+	if err == nil {
+		return domain.Audience(audience), true, nil
+	}
+
+	if !errors.Is(err, sql.ErrNoRows) {
+		return "", false, fmt.Errorf("revoke staff message: %w", err)
+	}
+
+	err = sqlx.GetContext(ctx, Executor(ctx, r.db), &audience, `
+		SELECT audience FROM staff_messages
+		WHERE tenant_public_id = $1 AND event_id = $2 AND message_id = $3`,
+		tenantPublicID, eventID, string(id))
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", false, repository.ErrStaffMessageNotFound
+	}
+
 	if err != nil {
-		return fmt.Errorf("revoke staff message: %w", err)
+		return "", false, fmt.Errorf("select revoked staff message: %w", err)
 	}
 
-	affected, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("revoke staff message: %w", err)
-	}
-
-	if affected == 0 {
-		return repository.ErrStaffMessageNotFound
-	}
-
-	return nil
+	return domain.Audience(audience), false, nil
 }
 
 func (r *PostgresStaffMessageRepository) ListActive(

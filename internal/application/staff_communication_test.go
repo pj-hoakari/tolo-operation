@@ -46,18 +46,50 @@ func withServiceToken() context.Context {
 	})
 }
 
+type fakeTransactor struct {
+	active bool
+}
+
+func (f *fakeTransactor) WithinTransaction(ctx context.Context, fn func(context.Context) error) error {
+	f.active = true
+	defer func() { f.active = false }()
+
+	return fn(ctx)
+}
+
+type staffCommunicationDeps struct {
+	messages     *MockStaffMessageRepository
+	outbox       *MockOutboxRepository
+	transactions *fakeTransactor
+}
+
+func newStaffCommunicationWithOutbox(t *testing.T) (*application.StaffCommunicationService, staffCommunicationDeps) {
+	t.Helper()
+
+	controller := gomock.NewController(t)
+	deps := staffCommunicationDeps{
+		messages:     NewMockStaffMessageRepository(controller),
+		outbox:       NewMockOutboxRepository(controller),
+		transactions: &fakeTransactor{},
+	}
+
+	return application.NewStaffCommunicationService(deps.messages, deps.outbox, deps.transactions, clock), deps
+}
+
 func newStaffCommunication(t *testing.T) (*application.StaffCommunicationService, *MockStaffMessageRepository) {
 	t.Helper()
 
-	messages := NewMockStaffMessageRepository(gomock.NewController(t))
+	service, deps := newStaffCommunicationWithOutbox(t)
 
-	return application.NewStaffCommunicationService(messages, clock), messages
+	return service, deps.messages
 }
 
 func TestSendStaffMessage(t *testing.T) {
 	t.Parallel()
 
-	service, messages := newStaffCommunication(t)
+	service, deps := newStaffCommunicationWithOutbox(t)
+	messages := deps.messages
+	deps.outbox.EXPECT().Enqueue(gomock.Any(), gomock.Any()).Return(nil)
 
 	var stored domain.StaffMessage
 
@@ -114,7 +146,7 @@ func TestRevokeStaffMessage(t *testing.T) {
 	t.Parallel()
 
 	service, messages := newStaffCommunication(t)
-	messages.EXPECT().Revoke(gomock.Any(), testTenantPublicID, testEventPublicID, domain.MessageID(testMessageID), testNow).Return(nil)
+	messages.EXPECT().Revoke(gomock.Any(), testTenantPublicID, testEventPublicID, domain.MessageID(testMessageID), testNow).Return(domain.AudienceStaff, true, nil)
 
 	err := service.RevokeStaffMessage(withEventToken(testEventPublicID), application.RevokeStaffMessageInput{
 		TenantID:  testTenantPublicID,
@@ -130,7 +162,7 @@ func TestRevokeStaffMessageReportsAnUnknownMessage(t *testing.T) {
 	t.Parallel()
 
 	service, messages := newStaffCommunication(t)
-	messages.EXPECT().Revoke(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(repository.ErrStaffMessageNotFound)
+	messages.EXPECT().Revoke(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(domain.Audience(""), false, repository.ErrStaffMessageNotFound)
 
 	err := service.RevokeStaffMessage(withEventToken(testEventPublicID), application.RevokeStaffMessageInput{
 		TenantID:  testTenantPublicID,

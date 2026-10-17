@@ -15,6 +15,7 @@ import (
 	connectinfra "github.com/pj-hoakari/tolo-operation/internal/infra/connect"
 	dbinfra "github.com/pj-hoakari/tolo-operation/internal/infra/db"
 	"github.com/pj-hoakari/tolo-operation/internal/infra/httpapi"
+	"github.com/pj-hoakari/tolo-operation/internal/infra/pubsub"
 	"github.com/pj-hoakari/tolo-operation/internal/logging"
 	"github.com/pj-hoakari/tolo-operation/internal/telemetry"
 )
@@ -22,6 +23,8 @@ import (
 const (
 	defaultAddr       = ":8080"
 	defaultLogLevel   = "info"
+	defaultOutboxTick = time.Second
+	outboxMaxAttempts = 30
 	shutdownTimeout   = 10 * time.Second
 	readHeaderTimeout = 10 * time.Second
 )
@@ -52,6 +55,15 @@ func run() error {
 	jwtSettings.Issuer = getenv("INTERNAL_JWT_ISSUER", jwtSettings.Issuer)
 	jwtSettings.Audience = getenv("INTERNAL_JWT_AUDIENCE", jwtSettings.Audience)
 
+	outboxInterval, err := time.ParseDuration(getenv("OUTBOX_DISPATCH_INTERVAL", defaultOutboxTick.String()))
+	if err != nil {
+		return fmt.Errorf("read OUTBOX_DISPATCH_INTERVAL: %w", err)
+	}
+
+	if outboxInterval <= 0 {
+		return fmt.Errorf("read OUTBOX_DISPATCH_INTERVAL: %s is not positive", outboxInterval)
+	}
+
 	databaseURL := os.Getenv("DATABASE_URL")
 	if databaseURL == "" {
 		return errors.New("DATABASE_URL is required")
@@ -78,10 +90,13 @@ func run() error {
 	}()
 
 	now := func() time.Time { return time.Now().Truncate(time.Microsecond) }
+	outbox := dbinfra.NewPostgresOutboxRepository(db)
 
 	serviceRoutes, err := connectinfra.RoutesWithJWTSettings(
 		jwtSettings,
-		application.NewStaffCommunicationService(dbinfra.NewPostgresStaffMessageRepository(db), now),
+		application.NewStaffCommunicationService(
+			dbinfra.NewPostgresStaffMessageRepository(db), outbox, dbinfra.NewPostgresTransactor(db), now,
+		),
 		application.NewOperationControlService(dbinfra.NewPostgresReassignmentRepository(db), now),
 		application.NewDeliveryCoordinationService(
 			dbinfra.NewPostgresConnectionStateRepository(db),
@@ -106,6 +121,20 @@ func run() error {
 		// stream as everything else.
 		ErrorLog: slog.NewLogLogger(slog.Default().Handler(), slog.LevelError),
 	}
+
+	dispatcher := application.NewOutboxDispatcher(outbox, pubsub.NewLogPublisher(), outboxMaxAttempts)
+	dispatcherDone := make(chan struct{})
+
+	go func() {
+		defer close(dispatcherDone)
+
+		dispatcher.Run(ctx, outboxInterval)
+	}()
+
+	defer func() {
+		stop()
+		<-dispatcherDone
+	}()
 
 	serveErr := make(chan error, 1)
 

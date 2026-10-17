@@ -50,12 +50,19 @@ type StaffCommunicationUseCases interface {
 }
 
 type StaffCommunicationService struct {
-	messages repository.StaffMessageRepository
-	now      func() time.Time
+	messages     repository.StaffMessageRepository
+	outbox       repository.OutboxRepository
+	transactions repository.Transactor
+	now          func() time.Time
 }
 
-func NewStaffCommunicationService(messages repository.StaffMessageRepository, now func() time.Time) *StaffCommunicationService {
-	return &StaffCommunicationService{messages: messages, now: now}
+func NewStaffCommunicationService(
+	messages repository.StaffMessageRepository,
+	outbox repository.OutboxRepository,
+	transactions repository.Transactor,
+	now func() time.Time,
+) *StaffCommunicationService {
+	return &StaffCommunicationService{messages: messages, outbox: outbox, transactions: transactions, now: now}
 }
 
 func (s *StaffCommunicationService) SendStaffMessage(ctx context.Context, input SendStaffMessageInput) (domain.StaffMessage, error) {
@@ -74,8 +81,19 @@ func (s *StaffCommunicationService) SendStaffMessage(ctx context.Context, input 
 		return domain.StaffMessage{}, err
 	}
 
-	if err := s.messages.Create(ctx, message); err != nil {
-		return domain.StaffMessage{}, fmt.Errorf("create staff message: %w", err)
+	err = s.transactions.WithinTransaction(ctx, func(ctx context.Context) error {
+		if err := s.messages.Create(ctx, message); err != nil {
+			return fmt.Errorf("create staff message: %w", err)
+		}
+
+		if update := domain.GuestUpsert(message); update != nil {
+			return s.enqueue(ctx, update)
+		}
+
+		return nil
+	})
+	if err != nil {
+		return domain.StaffMessage{}, err
 	}
 
 	return message, nil
@@ -115,8 +133,28 @@ func (s *StaffCommunicationService) RevokeStaffMessage(ctx context.Context, inpu
 		return err
 	}
 
-	if err := s.messages.Revoke(ctx, tenantPublicID, eventID, id, s.now()); err != nil {
-		return fmt.Errorf("revoke staff message: %w", err)
+	return s.transactions.WithinTransaction(ctx, func(ctx context.Context) error {
+		audience, revoked, err := s.messages.Revoke(ctx, tenantPublicID, eventID, id, s.now())
+		if err != nil {
+			return fmt.Errorf("revoke staff message: %w", err)
+		}
+
+		if update := domain.GuestRevocation(eventID, id, audience); revoked && update != nil {
+			return s.enqueue(ctx, update)
+		}
+
+		return nil
+	})
+}
+
+func (s *StaffCommunicationService) enqueue(ctx context.Context, payload domain.OutboxPayload) error {
+	message, err := domain.NewOutboxMessage(payload)
+	if err != nil {
+		return err
+	}
+
+	if err := s.outbox.Enqueue(ctx, message); err != nil {
+		return fmt.Errorf("enqueue %s: %w", message.Topic, err)
 	}
 
 	return nil
