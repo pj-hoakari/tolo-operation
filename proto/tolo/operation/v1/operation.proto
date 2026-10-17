@@ -107,10 +107,12 @@ message SendStaffMessageRequest {
   string event_id = 1;
   Audience audience = 2;
   string body = 3;
+  string tenant_id = 4;
 }
 message RevokeStaffMessageRequest {
   string event_id = 1;
   string message_id = 2;
+  string tenant_id = 3;
 }
 message RevokeStaffMessageResponse {}
 
@@ -118,6 +120,7 @@ message ShareGuidanceInfoRequest {
   string event_id = 1;
   string body = 2;
   repeated string related_route_ids = 3;
+  string tenant_id = 4;
 }
 message ListStaffMessagesRequest {
   string event_id = 1;
@@ -153,12 +156,16 @@ message DirectReassignmentRequest {
     string gate_point_id = 4;
     tolo.kernel.v1.GraphAnchor anchor = 5;
   }
+  string tenant_id = 6;
 }
 message ApplyReassignmentRequest {
   string reassignment_id = 1;
+  string event_id = 2;
+  string tenant_id = 3;
 }
 message ListReassignmentsRequest {
   string event_id = 1;
+  string tenant_id = 2;
 }
 message ListReassignmentsResponse {
   repeated Reassignment reassignments = 1;
@@ -170,6 +177,7 @@ message RequestProposalDeliveryRequest {
     FlowProposals flow_proposals = 2;
     LineGuidance line_guidance = 3;
   }
+  string tenant_id = 4;
 }
 message RequestProposalDeliveryResponse {
   string delivery_id = 1;
@@ -319,6 +327,8 @@ message UpdateConnectionStateRequest {
   string device_id = 2;
   bool connected = 3;
   google.protobuf.Timestamp at = 4;
+  string event_id = 5;
+  string tenant_id = 6;
 }
 message UpdateConnectionStateResponse {}
 
@@ -326,6 +336,7 @@ message GetHistoryDigestRequest {
   string event_id = 1;
   google.protobuf.Timestamp from = 2;
   google.protobuf.Timestamp to = 3;
+  string tenant_id = 4;
 }
 
 message HistoryDigest {
