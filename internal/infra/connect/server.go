@@ -53,6 +53,7 @@ func DefaultJWTSettings() JWTSettings {
 func RoutesWithJWTSettings(
 	settings JWTSettings,
 	staffCommunication application.StaffCommunicationUseCases,
+	operationControl application.OperationControlUseCases,
 ) (func(mux *http.ServeMux), error) {
 	cache, err := jwks.New(jwks.Config{
 		URL:             settings.JWKSURL,
@@ -73,7 +74,7 @@ func RoutesWithJWTSettings(
 		return nil, fmt.Errorf("create internal JWT verifier: %w", err)
 	}
 
-	return RoutesWithVerifier(tokenVerifier, staffCommunication)
+	return RoutesWithVerifier(tokenVerifier, staffCommunication, operationControl)
 }
 
 // RoutesWithVerifier builds the service routes around a verifier of the
@@ -82,6 +83,7 @@ func RoutesWithJWTSettings(
 func RoutesWithVerifier(
 	tokenVerifier interceptor.TokenVerifier,
 	staffCommunication application.StaffCommunicationUseCases,
+	operationControl application.OperationControlUseCases,
 ) (func(mux *http.ServeMux), error) {
 	// The caller sits behind the Service Gateway, so an incoming trace context is
 	// trusted and continued instead of being demoted to a span link.
@@ -114,7 +116,7 @@ func RoutesWithVerifier(
 	// on the trace it belongs to.
 	server := connectrpc.NewServer(tracing, auth)
 	operationv1connect.RegisterStaffCommunicationServiceHandler(server, NewStaffCommunicationService(staffCommunication))
-	operationv1connect.RegisterOperationControlServiceHandler(server, NewOperationControlService())
+	operationv1connect.RegisterOperationControlServiceHandler(server, NewOperationControlService(operationControl))
 	operationv1connect.RegisterDeliveryCoordinationServiceHandler(server, NewDeliveryCoordinationService())
 	operationv1connect.RegisterDigestServiceHandler(server, NewDigestService())
 

@@ -80,6 +80,7 @@ func run() error {
 	serviceRoutes, err := connectinfra.RoutesWithJWTSettings(
 		jwtSettings,
 		application.NewStaffCommunicationService(dbinfra.NewPostgresStaffMessageRepository(db), time.Now),
+		application.NewOperationControlService(dbinfra.NewPostgresReassignmentRepository(db), time.Now),
 	)
 	if err != nil {
 		return fmt.Errorf("build handler: %w", err)
