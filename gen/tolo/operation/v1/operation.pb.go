@@ -794,6 +794,7 @@ type ListStaffMessagesRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	EventId       string                 `protobuf:"bytes,1,opt,name=event_id,json=eventId,proto3" json:"event_id,omitempty"`
 	Audience      Audience               `protobuf:"varint,2,opt,name=audience,proto3,enum=tolo.operation.v1.Audience" json:"audience,omitempty"`
+	TenantId      string                 `protobuf:"bytes,3,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -840,6 +841,13 @@ func (x *ListStaffMessagesRequest) GetAudience() Audience {
 		return x.Audience
 	}
 	return Audience_AUDIENCE_UNSPECIFIED
+}
+
+func (x *ListStaffMessagesRequest) GetTenantId() string {
+	if x != nil {
+		return x.TenantId
+	}
+	return ""
 }
 
 type ListStaffMessagesResponse struct {
@@ -1416,6 +1424,7 @@ type RecordFeedbackValuesRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	EventId       string                 `protobuf:"bytes,1,opt,name=event_id,json=eventId,proto3" json:"event_id,omitempty"`
 	Values        *FeedbackValues        `protobuf:"bytes,2,opt,name=values,proto3" json:"values,omitempty"`
+	TenantId      string                 `protobuf:"bytes,3,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1462,6 +1471,13 @@ func (x *RecordFeedbackValuesRequest) GetValues() *FeedbackValues {
 		return x.Values
 	}
 	return nil
+}
+
+func (x *RecordFeedbackValuesRequest) GetTenantId() string {
+	if x != nil {
+		return x.TenantId
+	}
+	return ""
 }
 
 type RecordFeedbackValuesResponse struct {
@@ -2827,10 +2843,11 @@ const file_tolo_operation_v1_operation_proto_rawDesc = "" +
 	"\x18ShareGuidanceInfoRequest\x12\x19\n" +
 	"\bevent_id\x18\x01 \x01(\tR\aeventId\x12\x12\n" +
 	"\x04body\x18\x02 \x01(\tR\x04body\x12*\n" +
-	"\x11related_route_ids\x18\x03 \x03(\tR\x0frelatedRouteIds\"n\n" +
+	"\x11related_route_ids\x18\x03 \x03(\tR\x0frelatedRouteIds\"\x8b\x01\n" +
 	"\x18ListStaffMessagesRequest\x12\x19\n" +
 	"\bevent_id\x18\x01 \x01(\tR\aeventId\x127\n" +
-	"\baudience\x18\x02 \x01(\x0e2\x1b.tolo.operation.v1.AudienceR\baudience\"X\n" +
+	"\baudience\x18\x02 \x01(\x0e2\x1b.tolo.operation.v1.AudienceR\baudience\x12\x1b\n" +
+	"\ttenant_id\x18\x03 \x01(\tR\btenantId\"X\n" +
 	"\x19ListStaffMessagesResponse\x12;\n" +
 	"\bmessages\x18\x01 \x03(\v2\x1f.tolo.operation.v1.StaffMessageR\bmessages\"\xd0\x02\n" +
 	"\fReassignment\x12'\n" +
@@ -2864,10 +2881,11 @@ const file_tolo_operation_v1_operation_proto_rawDesc = "" +
 	"\vdelivery_id\x18\x01 \x01(\tR\n" +
 	"deliveryId\x12%\n" +
 	"\x0erealtime_count\x18\x02 \x01(\x05R\rrealtimeCount\x12-\n" +
-	"\x12notification_count\x18\x03 \x01(\x05R\x11notificationCount\"s\n" +
+	"\x12notification_count\x18\x03 \x01(\x05R\x11notificationCount\"\x90\x01\n" +
 	"\x1bRecordFeedbackValuesRequest\x12\x19\n" +
 	"\bevent_id\x18\x01 \x01(\tR\aeventId\x129\n" +
-	"\x06values\x18\x02 \x01(\v2!.tolo.operation.v1.FeedbackValuesR\x06values\"\x1e\n" +
+	"\x06values\x18\x02 \x01(\v2!.tolo.operation.v1.FeedbackValuesR\x06values\x12\x1b\n" +
+	"\ttenant_id\x18\x03 \x01(\tR\btenantId\"\x1e\n" +
 	"\x1cRecordFeedbackValuesResponse\"\xf4\x03\n" +
 	"\rFlowProposals\x12O\n" +
 	"\x11route_importances\x18\x01 \x03(\v2\".tolo.operation.v1.RouteImportanceR\x10routeImportances\x12U\n" +

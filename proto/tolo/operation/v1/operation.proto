@@ -122,6 +122,7 @@ message ShareGuidanceInfoRequest {
 message ListStaffMessagesRequest {
   string event_id = 1;
   Audience audience = 2;
+  string tenant_id = 3;
 }
 message ListStaffMessagesResponse {
   repeated StaffMessage messages = 1;
@@ -179,6 +180,7 @@ message RequestProposalDeliveryResponse {
 message RecordFeedbackValuesRequest {
   string event_id = 1;
   FeedbackValues values = 2;
+  string tenant_id = 3;
 }
 message RecordFeedbackValuesResponse {}
 
