@@ -6,8 +6,7 @@
 // interceptor (internal-jwt-handling/interceptor) verified for the call. This
 // package is read-only: it exposes only the claims that may drive an
 // authorization decision, keeping the raw claim set out of the application
-// layer, and pairs them with the tenant boundary checks Ensure and
-// VerifyOwnership.
+// layer, and pairs them with the tenant boundary check VerifyOwnership.
 //
 // It is deliberately kept out of the domain layer: whether a caller may act on
 // a given tenant is contextual authorization, not an intrinsic domain
@@ -23,9 +22,6 @@ import (
 )
 
 var (
-	// ErrMissing indicates the authenticated tenant ID is absent from the
-	// context on an operation that requires it.
-	ErrMissing = errors.New("tenant ID is missing from context")
 	// ErrSubjectMissing indicates the authenticated subject is absent from the
 	// context on an operation that requires it.
 	ErrSubjectMissing = errors.New("subject is missing from context")
@@ -83,26 +79,8 @@ func EventPublicIDFromContext(ctx context.Context) (string, bool) {
 	return eventPublicID, true
 }
 
-// Ensure verifies that tenantPublicID matches the authenticated tenant carried
-// in the context. It fails closed: a missing context tenant ID is an error, so
-// tenant-scoped work never proceeds without a verified owner. Callers pass the
-// public ID of the tenant they are about to act on to guard against tenant
-// mix-ups. Use this at the use-case boundary to authorize an operation.
-func Ensure(ctx context.Context, tenantPublicID string) error {
-	contextTenantPublicID, ok := TenantPublicIDFromContext(ctx)
-	if !ok || contextTenantPublicID == "" {
-		return ErrMissing
-	}
-
-	if contextTenantPublicID != tenantPublicID {
-		return ErrMismatch
-	}
-
-	return nil
-}
-
 // VerifyOwnership guards a tenant-scoped model reconstituted from persistence
-// against the authenticated tenant. Unlike Ensure it fails open on a missing
+// against the authenticated tenant. It fails open on a missing
 // context tenant: operations that legitimately run without an authenticated
 // tenant (e.g. service-token reads) stay unrestricted. It exists as defense in
 // depth, so that a repository query which forgets to scope by tenant cannot
