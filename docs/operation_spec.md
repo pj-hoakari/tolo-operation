@@ -112,6 +112,7 @@ message ShareGuidanceInfoRequest {
 message ListStaffMessagesRequest {
   string event_id = 1;
   Audience audience = 2;  // Guest Service は GUEST のみ許可（復旧pull時）
+  string tenant_id = 3;   // 必須。event_id の属するテナント
 }
 message ListStaffMessagesResponse {
   repeated StaffMessage messages = 1;
@@ -173,6 +174,7 @@ message RequestProposalDeliveryResponse {
 message RecordFeedbackValuesRequest {
   string event_id = 1;
   FeedbackValues values = 2;
+  string tenant_id = 3;  // 必須。event_id の属するテナント
 }
 message RecordFeedbackValuesResponse {}
 
@@ -355,6 +357,9 @@ message DigestEntry {
   Guest Service は自 DB に保持し、ゲストアクセス時に本サービスへ問い合わせない
 - 取り下げ（RevokeStaffMessage）は、audience が GUEST を含む場合に `revoked_message_ids` として同トピックへ publish する
   ListStaffMessages は取り下げ済みメッセージを返さない。復旧 pull の突き合わせでは、返却されるのは有効メッセージの全量であり、受信側は返却に含まれない保持中の message_id を取り下げ扱いにする
+- ListStaffMessages と RecordFeedbackValues は、対象のテナントとイベントをリクエストの `tenant_id` と `event_id` で受け取る（ADR-0103）
+  `tenant_id` が空の要求は `invalid_argument` を返す。クレームに `tenant_id`／`event_id` があればリクエストと突合し、不一致は `permission_denied` を返す
+  マシン起点の `token_use=service`（Guest Service の復旧 pull、観測サイクルからのフィードバック値）はクレームを持たず、突合できない。両メソッドはこの場合に境界の強制を要さないメソッドとし（service_gateway.md の「サービス側の検証規約」、ADR-0102）、`event_id` が `tenant_id` に属するかを確かめずに、`tenant_id` と `event_id` の組で区切った区画だけを読み書きする
 - publish（`guest-messages`・`realtime-delivery`）にはイベント単位の順序キーを付与する（トピック規約。spec-base/README.md）
 - 提案配信の宛先はスタッフのみ。ゲストへの誘導情報は、提案を受けたスタッフがゲスト向けメッセージとして手動配信する（システムによる自動転送はしない）
 - テナント内集約は保護境界内に閉じる。境界外（参照値集約）へ出すのは匿名化済みフィードバックのみ
