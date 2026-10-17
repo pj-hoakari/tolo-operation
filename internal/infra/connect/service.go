@@ -31,6 +31,7 @@ func (s *StaffCommunicationService) SendStaffMessage(
 	req *operationv1.SendStaffMessageRequest,
 ) (*operationv1.StaffMessage, error) {
 	message, err := s.useCases.SendStaffMessage(ctx, application.SendStaffMessageInput{
+		TenantID: req.GetTenantId(),
 		EventID:  req.GetEventId(),
 		Audience: domainAudience(req.GetAudience()),
 		Body:     req.GetBody(),
@@ -47,6 +48,7 @@ func (s *StaffCommunicationService) RevokeStaffMessage(
 	req *operationv1.RevokeStaffMessageRequest,
 ) (*operationv1.RevokeStaffMessageResponse, error) {
 	err := s.useCases.RevokeStaffMessage(ctx, application.RevokeStaffMessageInput{
+		TenantID:  req.GetTenantId(),
 		EventID:   req.GetEventId(),
 		MessageID: req.GetMessageId(),
 	})
@@ -62,6 +64,7 @@ func (s *StaffCommunicationService) ShareGuidanceInfo(
 	req *operationv1.ShareGuidanceInfoRequest,
 ) (*operationv1.StaffMessage, error) {
 	message, err := s.useCases.ShareGuidanceInfo(ctx, application.ShareGuidanceInfoInput{
+		TenantID:        req.GetTenantId(),
 		EventID:         req.GetEventId(),
 		Body:            req.GetBody(),
 		RelatedRouteIDs: req.GetRelatedRouteIds(),
@@ -143,6 +146,7 @@ func (s *OperationControlService) DirectReassignment(
 	req *operationv1.DirectReassignmentRequest,
 ) (*operationv1.Reassignment, error) {
 	input := application.DirectReassignmentInput{
+		TenantID:      req.GetTenantId(),
 		EventID:       req.GetEventId(),
 		StaffUserID:   req.GetStaffUserId(),
 		TargetKind:    "",
@@ -179,6 +183,8 @@ func (s *OperationControlService) ApplyReassignment(
 	req *operationv1.ApplyReassignmentRequest,
 ) (*operationv1.Reassignment, error) {
 	reassignment, err := s.useCases.ApplyReassignment(ctx, application.ApplyReassignmentInput{
+		TenantID:       req.GetTenantId(),
+		EventID:        req.GetEventId(),
 		ReassignmentID: req.GetReassignmentId(),
 	})
 	if err != nil {
@@ -192,7 +198,10 @@ func (s *OperationControlService) ListReassignments(
 	ctx context.Context,
 	req *operationv1.ListReassignmentsRequest,
 ) (*operationv1.ListReassignmentsResponse, error) {
-	reassignments, err := s.useCases.ListReassignments(ctx, application.ListReassignmentsInput{EventID: req.GetEventId()})
+	reassignments, err := s.useCases.ListReassignments(ctx, application.ListReassignmentsInput{
+		TenantID: req.GetTenantId(),
+		EventID:  req.GetEventId(),
+	})
 	if err != nil {
 		return nil, connectError(ctx, err)
 	}
@@ -259,6 +268,8 @@ func (s *DeliveryCoordinationService) UpdateConnectionState(
 	req *operationv1.UpdateConnectionStateRequest,
 ) (*operationv1.UpdateConnectionStateResponse, error) {
 	err := s.useCases.UpdateConnectionState(ctx, application.UpdateConnectionStateInput{
+		TenantID:  req.GetTenantId(),
+		EventID:   req.GetEventId(),
 		UserID:    req.GetUserId(),
 		DeviceID:  req.GetDeviceId(),
 		Connected: req.GetConnected(),

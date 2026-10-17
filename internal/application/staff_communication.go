@@ -17,17 +17,20 @@ import (
 var ErrGuestAudienceOnly = errors.New("service callers may list guest messages only")
 
 type SendStaffMessageInput struct {
+	TenantID string
 	EventID  string
 	Audience domain.Audience
 	Body     string
 }
 
 type RevokeStaffMessageInput struct {
+	TenantID  string
 	EventID   string
 	MessageID string
 }
 
 type ShareGuidanceInfoInput struct {
+	TenantID        string
 	EventID         string
 	Body            string
 	RelatedRouteIDs []string
@@ -56,12 +59,17 @@ func NewStaffCommunicationService(messages repository.StaffMessageRepository, no
 }
 
 func (s *StaffCommunicationService) SendStaffMessage(ctx context.Context, input SendStaffMessageInput) (domain.StaffMessage, error) {
-	tenantPublicID, senderUserID, err := sender(ctx, input.EventID)
+	tenantPublicID, eventID, err := requestScope(ctx, input.TenantID, input.EventID)
 	if err != nil {
 		return domain.StaffMessage{}, err
 	}
 
-	message, err := domain.NewStaffMessage(tenantPublicID, input.EventID, senderUserID, input.Audience, input.Body, s.now())
+	senderUserID, err := subject(ctx)
+	if err != nil {
+		return domain.StaffMessage{}, err
+	}
+
+	message, err := domain.NewStaffMessage(tenantPublicID, eventID, senderUserID, input.Audience, input.Body, s.now())
 	if err != nil {
 		return domain.StaffMessage{}, err
 	}
@@ -74,12 +82,17 @@ func (s *StaffCommunicationService) SendStaffMessage(ctx context.Context, input 
 }
 
 func (s *StaffCommunicationService) ShareGuidanceInfo(ctx context.Context, input ShareGuidanceInfoInput) (domain.StaffMessage, error) {
-	tenantPublicID, senderUserID, err := sender(ctx, input.EventID)
+	tenantPublicID, eventID, err := requestScope(ctx, input.TenantID, input.EventID)
 	if err != nil {
 		return domain.StaffMessage{}, err
 	}
 
-	message, err := domain.NewGuidanceInfo(tenantPublicID, input.EventID, senderUserID, input.Body, input.RelatedRouteIDs, s.now())
+	senderUserID, err := subject(ctx)
+	if err != nil {
+		return domain.StaffMessage{}, err
+	}
+
+	message, err := domain.NewGuidanceInfo(tenantPublicID, eventID, senderUserID, input.Body, input.RelatedRouteIDs, s.now())
 	if err != nil {
 		return domain.StaffMessage{}, err
 	}
@@ -92,7 +105,7 @@ func (s *StaffCommunicationService) ShareGuidanceInfo(ctx context.Context, input
 }
 
 func (s *StaffCommunicationService) RevokeStaffMessage(ctx context.Context, input RevokeStaffMessageInput) error {
-	tenantPublicID, err := eventTenant(ctx, input.EventID)
+	tenantPublicID, eventID, err := requestScope(ctx, input.TenantID, input.EventID)
 	if err != nil {
 		return err
 	}
@@ -102,7 +115,7 @@ func (s *StaffCommunicationService) RevokeStaffMessage(ctx context.Context, inpu
 		return err
 	}
 
-	if err := s.messages.Revoke(ctx, tenantPublicID, input.EventID, id, s.now()); err != nil {
+	if err := s.messages.Revoke(ctx, tenantPublicID, eventID, id, s.now()); err != nil {
 		return fmt.Errorf("revoke staff message: %w", err)
 	}
 
@@ -110,16 +123,8 @@ func (s *StaffCommunicationService) RevokeStaffMessage(ctx context.Context, inpu
 }
 
 func (s *StaffCommunicationService) ListStaffMessages(ctx context.Context, input ListStaffMessagesInput) ([]domain.StaffMessage, error) {
-	if strings.TrimSpace(input.EventID) == "" {
-		return nil, domain.ErrEventRequired
-	}
-
-	tenantPublicID, err := requestTenant(ctx, input.TenantID)
+	tenantPublicID, eventID, err := requestScope(ctx, input.TenantID, input.EventID)
 	if err != nil {
-		return nil, err
-	}
-
-	if err := tenantctx.EnsureEvent(ctx, input.EventID); err != nil {
 		return nil, err
 	}
 
@@ -127,7 +132,7 @@ func (s *StaffCommunicationService) ListStaffMessages(ctx context.Context, input
 		return nil, ErrGuestAudienceOnly
 	}
 
-	messages, err := s.messages.ListActive(ctx, tenantPublicID, input.EventID, domain.AudiencesVisibleTo(input.Audience))
+	messages, err := s.messages.ListActive(ctx, tenantPublicID, eventID, domain.AudiencesVisibleTo(input.Audience))
 	if err != nil {
 		return nil, fmt.Errorf("list staff messages: %w", err)
 	}
@@ -135,42 +140,33 @@ func (s *StaffCommunicationService) ListStaffMessages(ctx context.Context, input
 	return messages, nil
 }
 
-func requestTenant(ctx context.Context, tenantID string) (string, error) {
+func requestScope(ctx context.Context, tenantID, eventID string) (string, string, error) {
+	eventID = strings.TrimSpace(eventID)
+	if eventID == "" {
+		return "", "", domain.ErrEventRequired
+	}
+
 	tenantID = strings.TrimSpace(tenantID)
 	if tenantID == "" {
-		return "", domain.ErrTenantRequired
+		return "", "", domain.ErrTenantRequired
 	}
 
 	if err := tenantctx.VerifyOwnership(ctx, tenantID); err != nil {
-		return "", err
-	}
-
-	return tenantID, nil
-}
-
-func eventTenant(ctx context.Context, eventID string) (string, error) {
-	if err := tenantctx.EnsureEvent(ctx, eventID); err != nil {
-		return "", err
-	}
-
-	tenantPublicID, ok := tenantctx.TenantPublicIDFromContext(ctx)
-	if !ok {
-		return "", tenantctx.ErrMissing
-	}
-
-	return tenantPublicID, nil
-}
-
-func sender(ctx context.Context, eventID string) (string, string, error) {
-	tenantPublicID, err := eventTenant(ctx, eventID)
-	if err != nil {
 		return "", "", err
 	}
 
-	subject, ok := tenantctx.SubjectFromContext(ctx)
-	if !ok {
-		return "", "", tenantctx.ErrSubjectMissing
+	if err := tenantctx.EnsureEvent(ctx, eventID); err != nil {
+		return "", "", err
 	}
 
-	return tenantPublicID, subject, nil
+	return tenantID, eventID, nil
+}
+
+func subject(ctx context.Context) (string, error) {
+	subject, ok := tenantctx.SubjectFromContext(ctx)
+	if !ok {
+		return "", tenantctx.ErrSubjectMissing
+	}
+
+	return subject, nil
 }

@@ -9,10 +9,10 @@ import (
 
 	"github.com/pj-hoakari/tolo-operation/internal/domain"
 	"github.com/pj-hoakari/tolo-operation/internal/repository"
-	"github.com/pj-hoakari/tolo-operation/internal/tenantctx"
 )
 
 type DirectReassignmentInput struct {
+	TenantID      string
 	EventID       string
 	StaffUserID   string
 	TargetKind    domain.TargetKind
@@ -21,11 +21,14 @@ type DirectReassignmentInput struct {
 }
 
 type ApplyReassignmentInput struct {
+	TenantID       string
+	EventID        string
 	ReassignmentID string
 }
 
 type ListReassignmentsInput struct {
-	EventID string
+	TenantID string
+	EventID  string
 }
 
 type OperationControlUseCases interface {
@@ -44,7 +47,7 @@ func NewOperationControlService(reassignments repository.ReassignmentRepository,
 }
 
 func (s *OperationControlService) DirectReassignment(ctx context.Context, input DirectReassignmentInput) (domain.Reassignment, error) {
-	tenantPublicID, err := eventTenant(ctx, input.EventID)
+	tenantPublicID, eventID, err := requestScope(ctx, input.TenantID, input.EventID)
 	if err != nil {
 		return domain.Reassignment{}, err
 	}
@@ -54,7 +57,7 @@ func (s *OperationControlService) DirectReassignment(ctx context.Context, input 
 		return domain.Reassignment{}, err
 	}
 
-	reassignment, err := domain.DirectReassignment(tenantPublicID, input.EventID, input.StaffUserID, target, s.now())
+	reassignment, err := domain.DirectReassignment(tenantPublicID, eventID, input.StaffUserID, target, s.now())
 	if err != nil {
 		return domain.Reassignment{}, err
 	}
@@ -67,9 +70,9 @@ func (s *OperationControlService) DirectReassignment(ctx context.Context, input 
 }
 
 func (s *OperationControlService) ApplyReassignment(ctx context.Context, input ApplyReassignmentInput) (domain.Reassignment, error) {
-	tenantPublicID, ok := tenantctx.TenantPublicIDFromContext(ctx)
-	if !ok {
-		return domain.Reassignment{}, tenantctx.ErrMissing
+	tenantPublicID, eventID, err := requestScope(ctx, input.TenantID, input.EventID)
+	if err != nil {
+		return domain.Reassignment{}, err
 	}
 
 	id, err := domain.ParseReassignmentID(input.ReassignmentID)
@@ -82,8 +85,8 @@ func (s *OperationControlService) ApplyReassignment(ctx context.Context, input A
 		return domain.Reassignment{}, fmt.Errorf("find reassignment: %w", err)
 	}
 
-	if err := tenantctx.EnsureEvent(ctx, reassignment.EventID); err != nil {
-		return domain.Reassignment{}, err
+	if reassignment.EventID != eventID {
+		return domain.Reassignment{}, repository.ErrReassignmentNotFound
 	}
 
 	applied, changed := reassignment.Apply()
@@ -99,12 +102,12 @@ func (s *OperationControlService) ApplyReassignment(ctx context.Context, input A
 }
 
 func (s *OperationControlService) ListReassignments(ctx context.Context, input ListReassignmentsInput) ([]domain.Reassignment, error) {
-	tenantPublicID, err := eventTenant(ctx, input.EventID)
+	tenantPublicID, eventID, err := requestScope(ctx, input.TenantID, input.EventID)
 	if err != nil {
 		return nil, err
 	}
 
-	reassignments, err := s.reassignments.ListCurrent(ctx, tenantPublicID, input.EventID)
+	reassignments, err := s.reassignments.ListCurrent(ctx, tenantPublicID, eventID)
 	if err != nil {
 		return nil, fmt.Errorf("list reassignments: %w", err)
 	}

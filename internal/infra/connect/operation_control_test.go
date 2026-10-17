@@ -14,6 +14,7 @@ import (
 	"github.com/pj-hoakari/tolo-operation/internal/application"
 	"github.com/pj-hoakari/tolo-operation/internal/domain"
 	"github.com/pj-hoakari/tolo-operation/internal/repository"
+	"github.com/pj-hoakari/tolo-operation/internal/tenantctx"
 )
 
 const testReassignmentID = "8877665544332211"
@@ -21,6 +22,7 @@ const testReassignmentID = "8877665544332211"
 type fakeOperationControl struct {
 	directInput  application.DirectReassignmentInput
 	applyInput   application.ApplyReassignmentInput
+	listInput    application.ListReassignmentsInput
 	reassignment domain.Reassignment
 	listed       []domain.Reassignment
 	err          error
@@ -53,7 +55,9 @@ func (f *fakeOperationControl) ApplyReassignment(_ context.Context, input applic
 	return f.reassignment, f.err
 }
 
-func (f *fakeOperationControl) ListReassignments(_ context.Context, _ application.ListReassignmentsInput) ([]domain.Reassignment, error) {
+func (f *fakeOperationControl) ListReassignments(_ context.Context, input application.ListReassignmentsInput) ([]domain.Reassignment, error) {
+	f.listInput = input
+
 	return f.listed, f.err
 }
 
@@ -112,13 +116,18 @@ func TestDirectReassignmentRoundTripsEachTarget(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			client, authorization := newOperationControlClient(t, "events.operate", &fakeOperationControl{})
+			useCases := &fakeOperationControl{}
+			client, authorization := newOperationControlClient(t, "events.operate", useCases)
 
-			tt.req.EventId, tt.req.StaffUserId = testEventPublicID, "staff-2"
+			tt.req.TenantId, tt.req.EventId, tt.req.StaffUserId = testTenantPublicID, testEventPublicID, "staff-2"
 
 			res, err := client.DirectReassignment(authorized(authorization), tt.req)
 			if err != nil {
 				t.Fatalf("DirectReassignment: %v", err)
+			}
+
+			if useCases.directInput.TenantID != testTenantPublicID || useCases.directInput.EventID != testEventPublicID {
+				t.Errorf("input = %+v, want the request tenant and event", useCases.directInput)
 			}
 
 			tt.want.ReassignmentId, tt.want.EventId, tt.want.StaffUserId = testReassignmentID, testEventPublicID, "staff-2"
@@ -173,13 +182,18 @@ func TestApplyReassignment(t *testing.T) {
 	}}
 	client, authorization := newOperationControlClient(t, "events.operate", useCases)
 
-	res, err := client.ApplyReassignment(authorized(authorization), &operationv1.ApplyReassignmentRequest{ReassignmentId: testReassignmentID})
+	res, err := client.ApplyReassignment(authorized(authorization), &operationv1.ApplyReassignmentRequest{
+		ReassignmentId: testReassignmentID,
+		EventId:        testEventPublicID,
+		TenantId:       testTenantPublicID,
+	})
 	if err != nil {
 		t.Fatalf("ApplyReassignment: %v", err)
 	}
 
-	if useCases.applyInput.ReassignmentID != testReassignmentID {
-		t.Errorf("input = %+v", useCases.applyInput)
+	wantInput := application.ApplyReassignmentInput{TenantID: testTenantPublicID, EventID: testEventPublicID, ReassignmentID: testReassignmentID}
+	if useCases.applyInput != wantInput {
+		t.Errorf("input = %+v, want %+v", useCases.applyInput, wantInput)
 	}
 
 	if res.GetStatus() != operationv1.ReassignmentStatus_REASSIGNMENT_STATUS_APPLIED || res.GetGatePointId() != "gate-1" {
@@ -206,13 +220,21 @@ func TestListReassignmentsNeedsOnlyTheReadScope(t *testing.T) {
 		t.Fatalf("NewReassignmentTarget: %v", err)
 	}
 
-	client, authorization := newOperationControlClient(t, "events.read", &fakeOperationControl{listed: []domain.Reassignment{
+	useCases := &fakeOperationControl{listed: []domain.Reassignment{
 		{ID: testReassignmentID, StaffUserID: "staff-2", Target: target, Status: domain.ReassignmentDirected},
-	}})
+	}}
+	client, authorization := newOperationControlClient(t, "events.read", useCases)
 
-	res, err := client.ListReassignments(authorized(authorization), &operationv1.ListReassignmentsRequest{EventId: testEventPublicID})
+	res, err := client.ListReassignments(authorized(authorization), &operationv1.ListReassignmentsRequest{
+		TenantId: testTenantPublicID,
+		EventId:  testEventPublicID,
+	})
 	if err != nil {
 		t.Fatalf("ListReassignments: %v", err)
+	}
+
+	if want := (application.ListReassignmentsInput{TenantID: testTenantPublicID, EventID: testEventPublicID}); useCases.listInput != want {
+		t.Errorf("input = %+v, want %+v", useCases.listInput, want)
 	}
 
 	if len(res.GetReassignments()) != 1 || res.GetReassignments()[0].GetObservationPointId() != "op-1" {
@@ -222,5 +244,34 @@ func TestListReassignmentsNeedsOnlyTheReadScope(t *testing.T) {
 	_, err = client.DirectReassignment(authorized(authorization), &operationv1.DirectReassignmentRequest{EventId: testEventPublicID})
 	if got, want := connectrpc.CodeOf(err), connectrpc.CodePermissionDenied; got != want {
 		t.Errorf("DirectReassignment with events.read error code = %v, want %v", got, want)
+	}
+}
+
+func TestOperationControlScopeErrors(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		err  error
+		code connectrpc.Code
+	}{
+		{domain.ErrTenantRequired, connectrpc.CodeInvalidArgument},
+		{domain.ErrEventRequired, connectrpc.CodeInvalidArgument},
+		{tenantctx.ErrMismatch, connectrpc.CodePermissionDenied},
+		{tenantctx.ErrEventMismatch, connectrpc.CodePermissionDenied},
+	}
+
+	for _, tt := range tests {
+		client, authorization := newOperationControlClient(t, "events.operate events.read", &fakeOperationControl{err: tt.err})
+		ctx := authorized(authorization)
+
+		_, directErr := client.DirectReassignment(ctx, &operationv1.DirectReassignmentRequest{})
+		_, applyErr := client.ApplyReassignment(ctx, &operationv1.ApplyReassignmentRequest{})
+		_, listErr := client.ListReassignments(ctx, &operationv1.ListReassignmentsRequest{})
+
+		for name, err := range map[string]error{"direct": directErr, "apply": applyErr, "list": listErr} {
+			if got := connectrpc.CodeOf(err); got != tt.code {
+				t.Errorf("%v: %s error code = %v, want %v", tt.err, name, got, tt.code)
+			}
+		}
 	}
 }

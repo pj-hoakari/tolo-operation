@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"go.uber.org/mock/gomock"
 
@@ -24,7 +25,7 @@ func newDeliveryCoordination(t *testing.T) (*application.DeliveryCoordinationSer
 	return application.NewDeliveryCoordinationService(states, feedback), states, feedback
 }
 
-func TestUpdateConnectionStateSavesTheCallersDeviceInTheTokenEvent(t *testing.T) {
+func TestUpdateConnectionStateSavesTheCallersDeviceInTheRequestEvent(t *testing.T) {
 	t.Parallel()
 
 	service, states, _ := newDeliveryCoordination(t)
@@ -38,6 +39,8 @@ func TestUpdateConnectionStateSavesTheCallersDeviceInTheTokenEvent(t *testing.T)
 	}).Return(nil)
 
 	err := service.UpdateConnectionState(withEventToken(testEventPublicID), application.UpdateConnectionStateInput{
+		TenantID:  " " + testTenantPublicID + " ",
+		EventID:   " " + testEventPublicID + " ",
 		UserID:    testSubject,
 		DeviceID:  "phone-1",
 		Connected: true,
@@ -54,6 +57,8 @@ func TestUpdateConnectionStateRejectsAnotherUser(t *testing.T) {
 	service, _, _ := newDeliveryCoordination(t)
 
 	err := service.UpdateConnectionState(withEventToken(testEventPublicID), application.UpdateConnectionStateInput{
+		TenantID: testTenantPublicID,
+		EventID:  testEventPublicID,
 		UserID:   "someone-else",
 		DeviceID: "phone-1",
 		At:       testNow,
@@ -71,8 +76,10 @@ func TestUpdateConnectionStateRejectsInvalidInput(t *testing.T) {
 		input application.UpdateConnectionStateInput
 		want  error
 	}{
-		{"missing device", application.UpdateConnectionStateInput{UserID: testSubject, At: testNow}, domain.ErrDeviceRequired},
-		{"missing time", application.UpdateConnectionStateInput{UserID: testSubject, DeviceID: "phone-1"}, domain.ErrStateTimeRequired},
+		{"missing device", connectionState(func(input *application.UpdateConnectionStateInput) { input.DeviceID = "" }), domain.ErrDeviceRequired},
+		{"missing time", connectionState(func(input *application.UpdateConnectionStateInput) { input.At = time.Time{} }), domain.ErrStateTimeRequired},
+		{"missing tenant", connectionState(func(input *application.UpdateConnectionStateInput) { input.TenantID = " " }), domain.ErrTenantRequired},
+		{"missing event", connectionState(func(input *application.UpdateConnectionStateInput) { input.EventID = " " }), domain.ErrEventRequired},
 	}
 
 	for _, tt := range tests {
@@ -82,6 +89,41 @@ func TestUpdateConnectionStateRejectsInvalidInput(t *testing.T) {
 			t.Errorf("%s: UpdateConnectionState error = %v, want %v", tt.name, err, tt.want)
 		}
 	}
+}
+
+func TestUpdateConnectionStateRejectsAScopeOtherThanTheTokens(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name  string
+		input application.UpdateConnectionStateInput
+		want  error
+	}{
+		{"another tenant", connectionState(func(input *application.UpdateConnectionStateInput) { input.TenantID = otherTenantPublicID }), tenantctx.ErrMismatch},
+		{"another event", connectionState(func(input *application.UpdateConnectionStateInput) { input.EventID = otherEventPublicID }), tenantctx.ErrEventMismatch},
+	}
+
+	for _, tt := range tests {
+		service, _, _ := newDeliveryCoordination(t)
+
+		if err := service.UpdateConnectionState(withEventToken(testEventPublicID), tt.input); !errors.Is(err, tt.want) {
+			t.Errorf("%s: UpdateConnectionState error = %v, want %v", tt.name, err, tt.want)
+		}
+	}
+}
+
+func connectionState(modify func(*application.UpdateConnectionStateInput)) application.UpdateConnectionStateInput {
+	input := application.UpdateConnectionStateInput{
+		TenantID:  testTenantPublicID,
+		EventID:   testEventPublicID,
+		UserID:    testSubject,
+		DeviceID:  "phone-1",
+		Connected: true,
+		At:        testNow,
+	}
+	modify(&input)
+
+	return input
 }
 
 func TestRecordFeedbackValues(t *testing.T) {
@@ -139,10 +181,12 @@ func TestRecordFeedbackValuesChecksTheRequestTenant(t *testing.T) {
 		name     string
 		ctx      context.Context
 		tenantID string
+		eventID  string
 		want     error
 	}{
-		{"missing tenant", withServiceToken(), " ", domain.ErrTenantRequired},
-		{"tenant other than the token's", tenantToken, otherTenantPublicID, tenantctx.ErrMismatch},
+		{"missing tenant", withServiceToken(), " ", testEventPublicID, domain.ErrTenantRequired},
+		{"missing event", withServiceToken(), testTenantPublicID, " ", domain.ErrEventRequired},
+		{"tenant other than the token's", tenantToken, otherTenantPublicID, testEventPublicID, tenantctx.ErrMismatch},
 	}
 
 	for _, tt := range tests {
@@ -150,7 +194,7 @@ func TestRecordFeedbackValuesChecksTheRequestTenant(t *testing.T) {
 
 		err := service.RecordFeedbackValues(tt.ctx, application.RecordFeedbackValuesInput{
 			TenantID:   tt.tenantID,
-			EventID:    testEventPublicID,
+			EventID:    tt.eventID,
 			ComputedAt: testNow,
 		})
 		if !errors.Is(err, tt.want) {

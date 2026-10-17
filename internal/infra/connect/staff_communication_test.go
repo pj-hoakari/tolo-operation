@@ -97,6 +97,7 @@ func TestSendStaffMessage(t *testing.T) {
 	client, authorization := newStaffCommunicationClient(t, staffToken("events.operate"), useCases)
 
 	res, err := client.SendStaffMessage(authorized(authorization), &operationv1.SendStaffMessageRequest{
+		TenantId: testTenantPublicID,
 		EventId:  testEventPublicID,
 		Audience: operationv1.Audience_AUDIENCE_GUEST,
 		Body:     "gate B is open",
@@ -105,7 +106,12 @@ func TestSendStaffMessage(t *testing.T) {
 		t.Fatalf("SendStaffMessage: %v", err)
 	}
 
-	wantInput := application.SendStaffMessageInput{EventID: testEventPublicID, Audience: domain.AudienceGuest, Body: "gate B is open"}
+	wantInput := application.SendStaffMessageInput{
+		TenantID: testTenantPublicID,
+		EventID:  testEventPublicID,
+		Audience: domain.AudienceGuest,
+		Body:     "gate B is open",
+	}
 	if useCases.sendInput != wantInput {
 		t.Errorf("input = %+v, want %+v", useCases.sendInput, wantInput)
 	}
@@ -124,6 +130,7 @@ func TestShareGuidanceInfo(t *testing.T) {
 	client, authorization := newStaffCommunicationClient(t, staffToken("events.operate"), useCases)
 
 	res, err := client.ShareGuidanceInfo(authorized(authorization), &operationv1.ShareGuidanceInfoRequest{
+		TenantId:        testTenantPublicID,
 		EventId:         testEventPublicID,
 		Body:            "one way",
 		RelatedRouteIds: []string{"route-a"},
@@ -132,7 +139,8 @@ func TestShareGuidanceInfo(t *testing.T) {
 		t.Fatalf("ShareGuidanceInfo: %v", err)
 	}
 
-	if useCases.shareInput.Body != "one way" || !slices.Equal(useCases.shareInput.RelatedRouteIDs, []string{"route-a"}) {
+	if useCases.shareInput.TenantID != testTenantPublicID || useCases.shareInput.EventID != testEventPublicID ||
+		useCases.shareInput.Body != "one way" || !slices.Equal(useCases.shareInput.RelatedRouteIDs, []string{"route-a"}) {
 		t.Errorf("input = %+v", useCases.shareInput)
 	}
 
@@ -230,7 +238,27 @@ func TestStaffCommunicationRejectsInvalidMessages(t *testing.T) {
 	}
 }
 
-func TestListStaffMessagesTenantErrors(t *testing.T) {
+func TestRevokeStaffMessagePassesTheRequestScope(t *testing.T) {
+	t.Parallel()
+
+	useCases := &fakeStaffCommunication{}
+	client, authorization := newStaffCommunicationClient(t, staffToken("events.operate"), useCases)
+
+	if _, err := client.RevokeStaffMessage(authorized(authorization), &operationv1.RevokeStaffMessageRequest{
+		TenantId:  testTenantPublicID,
+		EventId:   testEventPublicID,
+		MessageId: testMessageID,
+	}); err != nil {
+		t.Fatalf("RevokeStaffMessage: %v", err)
+	}
+
+	want := application.RevokeStaffMessageInput{TenantID: testTenantPublicID, EventID: testEventPublicID, MessageID: testMessageID}
+	if useCases.revokeInput != want {
+		t.Errorf("input = %+v, want %+v", useCases.revokeInput, want)
+	}
+}
+
+func TestStaffCommunicationScopeErrors(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -238,15 +266,24 @@ func TestListStaffMessagesTenantErrors(t *testing.T) {
 		code connectrpc.Code
 	}{
 		{domain.ErrTenantRequired, connectrpc.CodeInvalidArgument},
+		{domain.ErrEventRequired, connectrpc.CodeInvalidArgument},
 		{tenantctx.ErrMismatch, connectrpc.CodePermissionDenied},
+		{tenantctx.ErrEventMismatch, connectrpc.CodePermissionDenied},
 	}
 
 	for _, tt := range tests {
-		client, authorization := newStaffCommunicationClient(t, staffToken("events.read"), &fakeStaffCommunication{err: tt.err})
+		client, authorization := newStaffCommunicationClient(t, staffToken("events.operate events.read"), &fakeStaffCommunication{err: tt.err})
+		ctx := authorized(authorization)
 
-		_, err := client.ListStaffMessages(authorized(authorization), &operationv1.ListStaffMessagesRequest{EventId: testEventPublicID})
-		if got := connectrpc.CodeOf(err); got != tt.code {
-			t.Errorf("%v: ListStaffMessages error code = %v, want %v", tt.err, got, tt.code)
+		_, sendErr := client.SendStaffMessage(ctx, &operationv1.SendStaffMessageRequest{})
+		_, revokeErr := client.RevokeStaffMessage(ctx, &operationv1.RevokeStaffMessageRequest{})
+		_, shareErr := client.ShareGuidanceInfo(ctx, &operationv1.ShareGuidanceInfoRequest{})
+		_, listErr := client.ListStaffMessages(ctx, &operationv1.ListStaffMessagesRequest{})
+
+		for name, err := range map[string]error{"send": sendErr, "revoke": revokeErr, "share": shareErr, "list": listErr} {
+			if got := connectrpc.CodeOf(err); got != tt.code {
+				t.Errorf("%v: %s error code = %v, want %v", tt.err, name, got, tt.code)
+			}
 		}
 	}
 }

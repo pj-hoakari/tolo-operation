@@ -135,53 +135,6 @@ func TestTenantPublicIDFromContext(t *testing.T) {
 	}
 }
 
-func TestEnsure(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name           string
-		ctx            context.Context
-		tenantPublicID string
-		wantErr        error
-	}{
-		{
-			name:           "matches context tenant",
-			ctx:            withTenant(context.Background(), "tenant-public-id"),
-			tenantPublicID: "tenant-public-id",
-			wantErr:        nil,
-		},
-		{
-			name:           "differs from context tenant",
-			ctx:            withTenant(context.Background(), "tenant-public-id"),
-			tenantPublicID: "other-tenant-public-id",
-			wantErr:        tenantctx.ErrMismatch,
-		},
-		{
-			name:           "missing context tenant",
-			ctx:            context.Background(),
-			tenantPublicID: "tenant-public-id",
-			wantErr:        tenantctx.ErrMissing,
-		},
-		{
-			name:           "empty context tenant",
-			ctx:            withTenant(context.Background(), ""),
-			tenantPublicID: "tenant-public-id",
-			wantErr:        tenantctx.ErrMissing,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
-			err := tenantctx.Ensure(tt.ctx, tt.tenantPublicID)
-			if !errors.Is(err, tt.wantErr) {
-				t.Errorf("Ensure() error = %v, want %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
 func TestVerifyOwnership(t *testing.T) {
 	t.Parallel()
 

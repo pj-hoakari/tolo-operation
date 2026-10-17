@@ -11,12 +11,13 @@ import (
 
 	"github.com/pj-hoakari/tolo-operation/internal/domain"
 	"github.com/pj-hoakari/tolo-operation/internal/repository"
-	"github.com/pj-hoakari/tolo-operation/internal/tenantctx"
 )
 
 var ErrForeignUser = errors.New("user ID does not match the token subject")
 
 type UpdateConnectionStateInput struct {
+	TenantID  string
+	EventID   string
 	UserID    string
 	DeviceID  string
 	Connected bool
@@ -48,19 +49,14 @@ func NewDeliveryCoordinationService(
 }
 
 func (s *DeliveryCoordinationService) UpdateConnectionState(ctx context.Context, input UpdateConnectionStateInput) error {
-	tenantPublicID, ok := tenantctx.TenantPublicIDFromContext(ctx)
-	if !ok {
-		return tenantctx.ErrMissing
+	tenantPublicID, eventID, err := requestScope(ctx, input.TenantID, input.EventID)
+	if err != nil {
+		return err
 	}
 
-	eventID, ok := tenantctx.EventPublicIDFromContext(ctx)
-	if !ok {
-		return tenantctx.ErrEventMissing
-	}
-
-	subject, ok := tenantctx.SubjectFromContext(ctx)
-	if !ok {
-		return tenantctx.ErrSubjectMissing
+	subjectID, err := subject(ctx)
+	if err != nil {
+		return err
 	}
 
 	state, err := domain.NewConnectionState(tenantPublicID, eventID, input.UserID, input.DeviceID, input.Connected, input.At)
@@ -68,7 +64,7 @@ func (s *DeliveryCoordinationService) UpdateConnectionState(ctx context.Context,
 		return err
 	}
 
-	if state.UserID != subject {
+	if state.UserID != subjectID {
 		return ErrForeignUser
 	}
 
@@ -80,16 +76,12 @@ func (s *DeliveryCoordinationService) UpdateConnectionState(ctx context.Context,
 }
 
 func (s *DeliveryCoordinationService) RecordFeedbackValues(ctx context.Context, input RecordFeedbackValuesInput) error {
-	tenantPublicID, err := requestTenant(ctx, input.TenantID)
+	tenantPublicID, eventID, err := requestScope(ctx, input.TenantID, input.EventID)
 	if err != nil {
 		return err
 	}
 
-	if err := tenantctx.EnsureEvent(ctx, input.EventID); err != nil {
-		return err
-	}
-
-	values, err := domain.NewFeedbackValues(tenantPublicID, input.EventID, input.ComputedAt, input.Entries)
+	values, err := domain.NewFeedbackValues(tenantPublicID, eventID, input.ComputedAt, input.Entries)
 	if err != nil {
 		return err
 	}

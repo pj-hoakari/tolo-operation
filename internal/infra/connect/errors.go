@@ -40,7 +40,6 @@ var clientErrors = []struct {
 	{domain.ErrFeedbackValueNotFinite, connectrpc.CodeInvalidArgument, "feedback value must be finite"},
 	{repository.ErrStaffMessageNotFound, connectrpc.CodeNotFound, "staff message not found"},
 	{repository.ErrReassignmentNotFound, connectrpc.CodeNotFound, "reassignment not found"},
-	{tenantctx.ErrMissing, connectrpc.CodePermissionDenied, "tenant ID is missing from the token"},
 	{tenantctx.ErrSubjectMissing, connectrpc.CodePermissionDenied, "subject is missing from the token"},
 	{tenantctx.ErrMismatch, connectrpc.CodePermissionDenied, "tenant ID does not match the token"},
 	{tenantctx.ErrEventMissing, connectrpc.CodePermissionDenied, "event ID is missing from the token"},

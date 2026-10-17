@@ -587,6 +587,7 @@ type SendStaffMessageRequest struct {
 	EventId       string                 `protobuf:"bytes,1,opt,name=event_id,json=eventId,proto3" json:"event_id,omitempty"`
 	Audience      Audience               `protobuf:"varint,2,opt,name=audience,proto3,enum=tolo.operation.v1.Audience" json:"audience,omitempty"`
 	Body          string                 `protobuf:"bytes,3,opt,name=body,proto3" json:"body,omitempty"`
+	TenantId      string                 `protobuf:"bytes,4,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -642,10 +643,18 @@ func (x *SendStaffMessageRequest) GetBody() string {
 	return ""
 }
 
+func (x *SendStaffMessageRequest) GetTenantId() string {
+	if x != nil {
+		return x.TenantId
+	}
+	return ""
+}
+
 type RevokeStaffMessageRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	EventId       string                 `protobuf:"bytes,1,opt,name=event_id,json=eventId,proto3" json:"event_id,omitempty"`
 	MessageId     string                 `protobuf:"bytes,2,opt,name=message_id,json=messageId,proto3" json:"message_id,omitempty"`
+	TenantId      string                 `protobuf:"bytes,3,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -694,6 +703,13 @@ func (x *RevokeStaffMessageRequest) GetMessageId() string {
 	return ""
 }
 
+func (x *RevokeStaffMessageRequest) GetTenantId() string {
+	if x != nil {
+		return x.TenantId
+	}
+	return ""
+}
+
 type RevokeStaffMessageResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -735,6 +751,7 @@ type ShareGuidanceInfoRequest struct {
 	EventId         string                 `protobuf:"bytes,1,opt,name=event_id,json=eventId,proto3" json:"event_id,omitempty"`
 	Body            string                 `protobuf:"bytes,2,opt,name=body,proto3" json:"body,omitempty"`
 	RelatedRouteIds []string               `protobuf:"bytes,3,rep,name=related_route_ids,json=relatedRouteIds,proto3" json:"related_route_ids,omitempty"`
+	TenantId        string                 `protobuf:"bytes,4,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
@@ -788,6 +805,13 @@ func (x *ShareGuidanceInfoRequest) GetRelatedRouteIds() []string {
 		return x.RelatedRouteIds
 	}
 	return nil
+}
+
+func (x *ShareGuidanceInfoRequest) GetTenantId() string {
+	if x != nil {
+		return x.TenantId
+	}
+	return ""
 }
 
 type ListStaffMessagesRequest struct {
@@ -1034,6 +1058,7 @@ type DirectReassignmentRequest struct {
 	//	*DirectReassignmentRequest_GatePointId
 	//	*DirectReassignmentRequest_Anchor
 	Target        isDirectReassignmentRequest_Target `protobuf_oneof:"target"`
+	TenantId      string                             `protobuf:"bytes,6,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1116,6 +1141,13 @@ func (x *DirectReassignmentRequest) GetAnchor() *v1.GraphAnchor {
 	return nil
 }
 
+func (x *DirectReassignmentRequest) GetTenantId() string {
+	if x != nil {
+		return x.TenantId
+	}
+	return ""
+}
+
 type isDirectReassignmentRequest_Target interface {
 	isDirectReassignmentRequest_Target()
 }
@@ -1141,6 +1173,8 @@ func (*DirectReassignmentRequest_Anchor) isDirectReassignmentRequest_Target() {}
 type ApplyReassignmentRequest struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
 	ReassignmentId string                 `protobuf:"bytes,1,opt,name=reassignment_id,json=reassignmentId,proto3" json:"reassignment_id,omitempty"`
+	EventId        string                 `protobuf:"bytes,2,opt,name=event_id,json=eventId,proto3" json:"event_id,omitempty"`
+	TenantId       string                 `protobuf:"bytes,3,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -1182,9 +1216,24 @@ func (x *ApplyReassignmentRequest) GetReassignmentId() string {
 	return ""
 }
 
+func (x *ApplyReassignmentRequest) GetEventId() string {
+	if x != nil {
+		return x.EventId
+	}
+	return ""
+}
+
+func (x *ApplyReassignmentRequest) GetTenantId() string {
+	if x != nil {
+		return x.TenantId
+	}
+	return ""
+}
+
 type ListReassignmentsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	EventId       string                 `protobuf:"bytes,1,opt,name=event_id,json=eventId,proto3" json:"event_id,omitempty"`
+	TenantId      string                 `protobuf:"bytes,2,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1222,6 +1271,13 @@ func (*ListReassignmentsRequest) Descriptor() ([]byte, []int) {
 func (x *ListReassignmentsRequest) GetEventId() string {
 	if x != nil {
 		return x.EventId
+	}
+	return ""
+}
+
+func (x *ListReassignmentsRequest) GetTenantId() string {
+	if x != nil {
+		return x.TenantId
 	}
 	return ""
 }
@@ -1278,6 +1334,7 @@ type RequestProposalDeliveryRequest struct {
 	//	*RequestProposalDeliveryRequest_FlowProposals
 	//	*RequestProposalDeliveryRequest_LineGuidance
 	Payload       isRequestProposalDeliveryRequest_Payload `protobuf_oneof:"payload"`
+	TenantId      string                                   `protobuf:"bytes,4,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1342,6 +1399,13 @@ func (x *RequestProposalDeliveryRequest) GetLineGuidance() *LineGuidance {
 		}
 	}
 	return nil
+}
+
+func (x *RequestProposalDeliveryRequest) GetTenantId() string {
+	if x != nil {
+		return x.TenantId
+	}
+	return ""
 }
 
 type isRequestProposalDeliveryRequest_Payload interface {
@@ -2478,6 +2542,8 @@ type UpdateConnectionStateRequest struct {
 	DeviceId      string                 `protobuf:"bytes,2,opt,name=device_id,json=deviceId,proto3" json:"device_id,omitempty"`
 	Connected     bool                   `protobuf:"varint,3,opt,name=connected,proto3" json:"connected,omitempty"`
 	At            *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=at,proto3" json:"at,omitempty"`
+	EventId       string                 `protobuf:"bytes,5,opt,name=event_id,json=eventId,proto3" json:"event_id,omitempty"`
+	TenantId      string                 `protobuf:"bytes,6,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2540,6 +2606,20 @@ func (x *UpdateConnectionStateRequest) GetAt() *timestamppb.Timestamp {
 	return nil
 }
 
+func (x *UpdateConnectionStateRequest) GetEventId() string {
+	if x != nil {
+		return x.EventId
+	}
+	return ""
+}
+
+func (x *UpdateConnectionStateRequest) GetTenantId() string {
+	if x != nil {
+		return x.TenantId
+	}
+	return ""
+}
+
 type UpdateConnectionStateResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -2581,6 +2661,7 @@ type GetHistoryDigestRequest struct {
 	EventId       string                 `protobuf:"bytes,1,opt,name=event_id,json=eventId,proto3" json:"event_id,omitempty"`
 	From          *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=from,proto3" json:"from,omitempty"`
 	To            *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=to,proto3" json:"to,omitempty"`
+	TenantId      string                 `protobuf:"bytes,4,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2634,6 +2715,13 @@ func (x *GetHistoryDigestRequest) GetTo() *timestamppb.Timestamp {
 		return x.To
 	}
 	return nil
+}
+
+func (x *GetHistoryDigestRequest) GetTenantId() string {
+	if x != nil {
+		return x.TenantId
+	}
+	return ""
 }
 
 type HistoryDigest struct {
@@ -2830,20 +2918,23 @@ const file_tolo_operation_v1_operation_proto_rawDesc = "" +
 	"\x0esender_user_id\x18\x03 \x01(\tR\fsenderUserId\x127\n" +
 	"\baudience\x18\x04 \x01(\x0e2\x1b.tolo.operation.v1.AudienceR\baudience\x12\x12\n" +
 	"\x04body\x18\x05 \x01(\tR\x04body\x123\n" +
-	"\asent_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\x06sentAt\"\x81\x01\n" +
+	"\asent_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\x06sentAt\"\x9e\x01\n" +
 	"\x17SendStaffMessageRequest\x12\x19\n" +
 	"\bevent_id\x18\x01 \x01(\tR\aeventId\x127\n" +
 	"\baudience\x18\x02 \x01(\x0e2\x1b.tolo.operation.v1.AudienceR\baudience\x12\x12\n" +
-	"\x04body\x18\x03 \x01(\tR\x04body\"U\n" +
+	"\x04body\x18\x03 \x01(\tR\x04body\x12\x1b\n" +
+	"\ttenant_id\x18\x04 \x01(\tR\btenantId\"r\n" +
 	"\x19RevokeStaffMessageRequest\x12\x19\n" +
 	"\bevent_id\x18\x01 \x01(\tR\aeventId\x12\x1d\n" +
 	"\n" +
-	"message_id\x18\x02 \x01(\tR\tmessageId\"\x1c\n" +
-	"\x1aRevokeStaffMessageResponse\"u\n" +
+	"message_id\x18\x02 \x01(\tR\tmessageId\x12\x1b\n" +
+	"\ttenant_id\x18\x03 \x01(\tR\btenantId\"\x1c\n" +
+	"\x1aRevokeStaffMessageResponse\"\x92\x01\n" +
 	"\x18ShareGuidanceInfoRequest\x12\x19\n" +
 	"\bevent_id\x18\x01 \x01(\tR\aeventId\x12\x12\n" +
 	"\x04body\x18\x02 \x01(\tR\x04body\x12*\n" +
-	"\x11related_route_ids\x18\x03 \x03(\tR\x0frelatedRouteIds\"\x8b\x01\n" +
+	"\x11related_route_ids\x18\x03 \x03(\tR\x0frelatedRouteIds\x12\x1b\n" +
+	"\ttenant_id\x18\x04 \x01(\tR\btenantId\"\x8b\x01\n" +
 	"\x18ListStaffMessagesRequest\x12\x19\n" +
 	"\bevent_id\x18\x01 \x01(\tR\aeventId\x127\n" +
 	"\baudience\x18\x02 \x01(\x0e2\x1b.tolo.operation.v1.AudienceR\baudience\x12\x1b\n" +
@@ -2858,24 +2949,29 @@ const file_tolo_operation_v1_operation_proto_rawDesc = "" +
 	"\rgate_point_id\x18\x05 \x01(\tH\x00R\vgatePointId\x125\n" +
 	"\x06anchor\x18\a \x01(\v2\x1b.tolo.kernel.v1.GraphAnchorH\x00R\x06anchor\x12=\n" +
 	"\x06status\x18\x06 \x01(\x0e2%.tolo.operation.v1.ReassignmentStatusR\x06statusB\b\n" +
-	"\x06target\"\xf5\x01\n" +
+	"\x06target\"\x92\x02\n" +
 	"\x19DirectReassignmentRequest\x12\x19\n" +
 	"\bevent_id\x18\x01 \x01(\tR\aeventId\x12\"\n" +
 	"\rstaff_user_id\x18\x02 \x01(\tR\vstaffUserId\x122\n" +
 	"\x14observation_point_id\x18\x03 \x01(\tH\x00R\x12observationPointId\x12$\n" +
 	"\rgate_point_id\x18\x04 \x01(\tH\x00R\vgatePointId\x125\n" +
-	"\x06anchor\x18\x05 \x01(\v2\x1b.tolo.kernel.v1.GraphAnchorH\x00R\x06anchorB\b\n" +
-	"\x06target\"C\n" +
+	"\x06anchor\x18\x05 \x01(\v2\x1b.tolo.kernel.v1.GraphAnchorH\x00R\x06anchor\x12\x1b\n" +
+	"\ttenant_id\x18\x06 \x01(\tR\btenantIdB\b\n" +
+	"\x06target\"{\n" +
 	"\x18ApplyReassignmentRequest\x12'\n" +
-	"\x0freassignment_id\x18\x01 \x01(\tR\x0ereassignmentId\"5\n" +
+	"\x0freassignment_id\x18\x01 \x01(\tR\x0ereassignmentId\x12\x19\n" +
+	"\bevent_id\x18\x02 \x01(\tR\aeventId\x12\x1b\n" +
+	"\ttenant_id\x18\x03 \x01(\tR\btenantId\"R\n" +
 	"\x18ListReassignmentsRequest\x12\x19\n" +
-	"\bevent_id\x18\x01 \x01(\tR\aeventId\"b\n" +
+	"\bevent_id\x18\x01 \x01(\tR\aeventId\x12\x1b\n" +
+	"\ttenant_id\x18\x02 \x01(\tR\btenantId\"b\n" +
 	"\x19ListReassignmentsResponse\x12E\n" +
-	"\rreassignments\x18\x01 \x03(\v2\x1f.tolo.operation.v1.ReassignmentR\rreassignments\"\xd9\x01\n" +
+	"\rreassignments\x18\x01 \x03(\v2\x1f.tolo.operation.v1.ReassignmentR\rreassignments\"\xf6\x01\n" +
 	"\x1eRequestProposalDeliveryRequest\x12\x19\n" +
 	"\bevent_id\x18\x01 \x01(\tR\aeventId\x12I\n" +
 	"\x0eflow_proposals\x18\x02 \x01(\v2 .tolo.operation.v1.FlowProposalsH\x00R\rflowProposals\x12F\n" +
-	"\rline_guidance\x18\x03 \x01(\v2\x1f.tolo.operation.v1.LineGuidanceH\x00R\flineGuidanceB\t\n" +
+	"\rline_guidance\x18\x03 \x01(\v2\x1f.tolo.operation.v1.LineGuidanceH\x00R\flineGuidance\x12\x1b\n" +
+	"\ttenant_id\x18\x04 \x01(\tR\btenantIdB\t\n" +
 	"\apayload\"\x98\x01\n" +
 	"\x1fRequestProposalDeliveryResponse\x12\x1f\n" +
 	"\vdelivery_id\x18\x01 \x01(\tR\n" +
@@ -2969,17 +3065,20 @@ const file_tolo_operation_v1_operation_proto_rawDesc = "" +
 	"\rFeedbackEntry\x12#\n" +
 	"\rattribute_tag\x18\x01 \x01(\tR\fattributeTag\x12\x12\n" +
 	"\x04kind\x18\x02 \x01(\tR\x04kind\x12\x14\n" +
-	"\x05value\x18\x03 \x01(\x01R\x05value\"\x9e\x01\n" +
+	"\x05value\x18\x03 \x01(\x01R\x05value\"\xd6\x01\n" +
 	"\x1cUpdateConnectionStateRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x1b\n" +
 	"\tdevice_id\x18\x02 \x01(\tR\bdeviceId\x12\x1c\n" +
 	"\tconnected\x18\x03 \x01(\bR\tconnected\x12*\n" +
-	"\x02at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\x02at\"\x1f\n" +
-	"\x1dUpdateConnectionStateResponse\"\x90\x01\n" +
+	"\x02at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\x02at\x12\x19\n" +
+	"\bevent_id\x18\x05 \x01(\tR\aeventId\x12\x1b\n" +
+	"\ttenant_id\x18\x06 \x01(\tR\btenantId\"\x1f\n" +
+	"\x1dUpdateConnectionStateResponse\"\xad\x01\n" +
 	"\x17GetHistoryDigestRequest\x12\x19\n" +
 	"\bevent_id\x18\x01 \x01(\tR\aeventId\x12.\n" +
 	"\x04from\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\x04from\x12*\n" +
-	"\x02to\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\x02to\"\xc0\x01\n" +
+	"\x02to\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\x02to\x12\x1b\n" +
+	"\ttenant_id\x18\x04 \x01(\tR\btenantId\"\xc0\x01\n" +
 	"\rHistoryDigest\x12\x19\n" +
 	"\bevent_id\x18\x01 \x01(\tR\aeventId\x12.\n" +
 	"\x04from\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\x04from\x12*\n" +
