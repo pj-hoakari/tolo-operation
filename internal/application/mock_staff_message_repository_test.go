@@ -57,18 +57,18 @@ func (mr *MockStaffMessageRepositoryMockRecorder) Create(ctx, message any) *gomo
 }
 
 // ListActive mocks base method.
-func (m *MockStaffMessageRepository) ListActive(ctx context.Context, eventID string, audiences []domain.Audience) ([]domain.StaffMessage, error) {
+func (m *MockStaffMessageRepository) ListActive(ctx context.Context, tenantPublicID, eventID string, audiences []domain.Audience) ([]domain.StaffMessage, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListActive", ctx, eventID, audiences)
+	ret := m.ctrl.Call(m, "ListActive", ctx, tenantPublicID, eventID, audiences)
 	ret0, _ := ret[0].([]domain.StaffMessage)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ListActive indicates an expected call of ListActive.
-func (mr *MockStaffMessageRepositoryMockRecorder) ListActive(ctx, eventID, audiences any) *gomock.Call {
+func (mr *MockStaffMessageRepositoryMockRecorder) ListActive(ctx, tenantPublicID, eventID, audiences any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListActive", reflect.TypeOf((*MockStaffMessageRepository)(nil).ListActive), ctx, eventID, audiences)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListActive", reflect.TypeOf((*MockStaffMessageRepository)(nil).ListActive), ctx, tenantPublicID, eventID, audiences)
 }
 
 // Revoke mocks base method.

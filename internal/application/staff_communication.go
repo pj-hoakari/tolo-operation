@@ -34,6 +34,7 @@ type ShareGuidanceInfoInput struct {
 }
 
 type ListStaffMessagesInput struct {
+	TenantID string
 	EventID  string
 	Audience domain.Audience
 }
@@ -113,6 +114,11 @@ func (s *StaffCommunicationService) ListStaffMessages(ctx context.Context, input
 		return nil, domain.ErrEventRequired
 	}
 
+	tenantPublicID, err := requestTenant(ctx, input.TenantID)
+	if err != nil {
+		return nil, err
+	}
+
 	if err := tenantctx.EnsureEvent(ctx, input.EventID); err != nil {
 		return nil, err
 	}
@@ -121,7 +127,7 @@ func (s *StaffCommunicationService) ListStaffMessages(ctx context.Context, input
 		return nil, ErrGuestAudienceOnly
 	}
 
-	messages, err := s.messages.ListActive(ctx, input.EventID, domain.AudiencesVisibleTo(input.Audience))
+	messages, err := s.messages.ListActive(ctx, tenantPublicID, input.EventID, domain.AudiencesVisibleTo(input.Audience))
 	if err != nil {
 		return nil, fmt.Errorf("list staff messages: %w", err)
 	}

@@ -78,6 +78,7 @@ func (s *StaffCommunicationService) ListStaffMessages(
 	req *operationv1.ListStaffMessagesRequest,
 ) (*operationv1.ListStaffMessagesResponse, error) {
 	messages, err := s.useCases.ListStaffMessages(ctx, application.ListStaffMessagesInput{
+		TenantID: req.GetTenantId(),
 		EventID:  req.GetEventId(),
 		Audience: domainAudience(req.GetAudience()),
 	})

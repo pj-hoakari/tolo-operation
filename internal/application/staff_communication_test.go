@@ -117,7 +117,7 @@ func TestStaffMessageCommandsRejectAnotherEvent(t *testing.T) {
 	_, sendErr := service.SendStaffMessage(ctx, application.SendStaffMessageInput{EventID: otherEventPublicID, Audience: domain.AudienceStaff, Body: "hi"})
 	_, shareErr := service.ShareGuidanceInfo(ctx, application.ShareGuidanceInfoInput{EventID: otherEventPublicID, Body: "hi"})
 	revokeErr := service.RevokeStaffMessage(ctx, application.RevokeStaffMessageInput{EventID: otherEventPublicID, MessageID: testMessageID})
-	_, listErr := service.ListStaffMessages(ctx, application.ListStaffMessagesInput{EventID: otherEventPublicID})
+	_, listErr := service.ListStaffMessages(ctx, application.ListStaffMessagesInput{TenantID: testTenantPublicID, EventID: otherEventPublicID})
 
 	for name, err := range map[string]error{"send": sendErr, "share": shareErr, "revoke": revokeErr, "list": listErr} {
 		if !errors.Is(err, tenantctx.ErrEventMismatch) {
@@ -162,10 +162,11 @@ func TestListStaffMessagesFiltersByAudience(t *testing.T) {
 	service, messages := newStaffCommunication(t)
 	listed := []domain.StaffMessage{{ID: testMessageID}}
 	messages.EXPECT().
-		ListActive(gomock.Any(), testEventPublicID, []domain.Audience{domain.AudienceStaff, domain.AudienceBoth}).
+		ListActive(gomock.Any(), testTenantPublicID, testEventPublicID, []domain.Audience{domain.AudienceStaff, domain.AudienceBoth}).
 		Return(listed, nil)
 
 	got, err := service.ListStaffMessages(withEventToken(testEventPublicID), application.ListStaffMessagesInput{
+		TenantID: testTenantPublicID,
 		EventID:  testEventPublicID,
 		Audience: domain.AudienceStaff,
 	})
@@ -185,6 +186,7 @@ func TestListStaffMessagesLetsServiceCallersReadGuestMessagesOnly(t *testing.T) 
 		service, _ := newStaffCommunication(t)
 
 		_, err := service.ListStaffMessages(withServiceToken(), application.ListStaffMessagesInput{
+			TenantID: testTenantPublicID,
 			EventID:  testEventPublicID,
 			Audience: audience,
 		})
@@ -195,10 +197,11 @@ func TestListStaffMessagesLetsServiceCallersReadGuestMessagesOnly(t *testing.T) 
 
 	service, messages := newStaffCommunication(t)
 	messages.EXPECT().
-		ListActive(gomock.Any(), testEventPublicID, []domain.Audience{domain.AudienceGuest, domain.AudienceBoth}).
+		ListActive(gomock.Any(), testTenantPublicID, testEventPublicID, []domain.Audience{domain.AudienceGuest, domain.AudienceBoth}).
 		Return(nil, nil)
 
 	if _, err := service.ListStaffMessages(withServiceToken(), application.ListStaffMessagesInput{
+		TenantID: testTenantPublicID,
 		EventID:  testEventPublicID,
 		Audience: domain.AudienceGuest,
 	}); err != nil {
@@ -214,5 +217,32 @@ func TestListStaffMessagesRequiresAnEvent(t *testing.T) {
 	_, err := service.ListStaffMessages(withServiceToken(), application.ListStaffMessagesInput{EventID: " ", Audience: domain.AudienceGuest})
 	if !errors.Is(err, domain.ErrEventRequired) {
 		t.Errorf("ListStaffMessages error = %v, want %v", err, domain.ErrEventRequired)
+	}
+}
+
+func TestListStaffMessagesChecksTheRequestTenant(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		ctx      context.Context
+		tenantID string
+		want     error
+	}{
+		{"missing tenant", withServiceToken(), " ", domain.ErrTenantRequired},
+		{"tenant other than the token's", withEventToken(testEventPublicID), otherTenantPublicID, tenantctx.ErrMismatch},
+	}
+
+	for _, tt := range tests {
+		service, _ := newStaffCommunication(t)
+
+		_, err := service.ListStaffMessages(tt.ctx, application.ListStaffMessagesInput{
+			TenantID: tt.tenantID,
+			EventID:  testEventPublicID,
+			Audience: domain.AudienceGuest,
+		})
+		if !errors.Is(err, tt.want) {
+			t.Errorf("%s: ListStaffMessages error = %v, want %v", tt.name, err, tt.want)
+		}
 	}
 }

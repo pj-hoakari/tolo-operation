@@ -7,16 +7,9 @@ import (
 	"testing"
 	"time"
 
-	internaljwt "github.com/pj-hoakari/internal-jwt-handling"
-
 	"github.com/pj-hoakari/tolo-operation/internal/domain"
 	"github.com/pj-hoakari/tolo-operation/internal/repository"
-	"github.com/pj-hoakari/tolo-operation/internal/tenantctx"
 )
-
-func withTenant(ctx context.Context, tenantPublicID string) context.Context {
-	return internaljwt.ContextWithClaims(ctx, internaljwt.Claims{TenantPublicID: tenantPublicID})
-}
 
 var baseTime = time.Date(2026, 10, 17, 9, 0, 0, 0, time.UTC)
 
@@ -52,7 +45,7 @@ func messageIDs(messages []domain.StaffMessage) []domain.MessageID {
 
 func TestPostgresStaffMessageRepositoryRoundTrip(t *testing.T) {
 	repo := NewPostgresStaffMessageRepository(testDB)
-	ctx := withTenant(context.Background(), "tenant-message-round-trip")
+	ctx := context.Background()
 
 	guidance, err := domain.NewGuidanceInfo("tenant-message-round-trip", "event-message-round-trip", "staff-1", "one way", []string{"route-a", "route-b"}, baseTime)
 	if err != nil {
@@ -63,7 +56,7 @@ func TestPostgresStaffMessageRepositoryRoundTrip(t *testing.T) {
 		t.Fatalf("Create: %v", err)
 	}
 
-	got, err := repo.ListActive(ctx, "event-message-round-trip", domain.AudiencesVisibleTo(""))
+	got, err := repo.ListActive(ctx, "tenant-message-round-trip", "event-message-round-trip", domain.AudiencesVisibleTo(""))
 	if err != nil {
 		t.Fatalf("ListActive: %v", err)
 	}
@@ -81,7 +74,6 @@ func TestPostgresStaffMessageRepositoryRoundTrip(t *testing.T) {
 func TestPostgresStaffMessageRepositoryListsByAudienceInSendOrder(t *testing.T) {
 	repo := NewPostgresStaffMessageRepository(testDB)
 	tenant, event := "tenant-message-audience", "event-message-audience"
-	ctx := withTenant(context.Background(), tenant)
 
 	both := createMessage(t, repo, tenant, event, domain.AudienceBoth, baseTime.Add(3*time.Minute))
 	guest := createMessage(t, repo, tenant, event, domain.AudienceGuest, baseTime.Add(2*time.Minute))
@@ -98,7 +90,7 @@ func TestPostgresStaffMessageRepositoryListsByAudienceInSendOrder(t *testing.T) 
 	}
 
 	for _, tt := range tests {
-		got, err := repo.ListActive(ctx, event, domain.AudiencesVisibleTo(tt.filter))
+		got, err := repo.ListActive(context.Background(), tenant, event, domain.AudiencesVisibleTo(tt.filter))
 		if err != nil {
 			t.Fatalf("ListActive(%q): %v", tt.filter, err)
 		}
@@ -112,7 +104,7 @@ func TestPostgresStaffMessageRepositoryListsByAudienceInSendOrder(t *testing.T) 
 func TestPostgresStaffMessageRepositoryRevoke(t *testing.T) {
 	repo := NewPostgresStaffMessageRepository(testDB)
 	tenant, event := "tenant-message-revoke", "event-message-revoke"
-	ctx := withTenant(context.Background(), tenant)
+	ctx := context.Background()
 
 	revoked := createMessage(t, repo, tenant, event, domain.AudienceGuest, baseTime)
 	kept := createMessage(t, repo, tenant, event, domain.AudienceGuest, baseTime.Add(time.Minute))
@@ -134,7 +126,7 @@ func TestPostgresStaffMessageRepositoryRevoke(t *testing.T) {
 		t.Errorf("revoked_at = %v, want the first revocation %v", revokedAt, baseTime.Add(time.Hour))
 	}
 
-	got, err := repo.ListActive(ctx, event, domain.AudiencesVisibleTo(""))
+	got, err := repo.ListActive(ctx, tenant, event, domain.AudiencesVisibleTo(""))
 	if err != nil {
 		t.Fatalf("ListActive: %v", err)
 	}
@@ -172,7 +164,7 @@ func TestPostgresStaffMessageRepositoryRevokeIsScopedToTenantAndEvent(t *testing
 		}
 	}
 
-	got, err := repo.ListActive(context.Background(), event, domain.AudiencesVisibleTo(""))
+	got, err := repo.ListActive(context.Background(), tenant, event, domain.AudiencesVisibleTo(""))
 	if err != nil {
 		t.Fatalf("ListActive: %v", err)
 	}
@@ -182,12 +174,24 @@ func TestPostgresStaffMessageRepositoryRevokeIsScopedToTenantAndEvent(t *testing
 	}
 }
 
-func TestPostgresStaffMessageRepositoryListRejectsAnotherTenantsEvent(t *testing.T) {
+func TestPostgresStaffMessageRepositoryListsOnlyTheRequestedTenant(t *testing.T) {
 	repo := NewPostgresStaffMessageRepository(testDB)
-	createMessage(t, repo, "tenant-message-owner", "event-message-owner", domain.AudienceStaff, baseTime)
+	event := "event-message-shared"
+	first := createMessage(t, repo, "tenant-message-first", event, domain.AudienceGuest, baseTime)
+	second := createMessage(t, repo, "tenant-message-second", event, domain.AudienceGuest, baseTime.Add(time.Minute))
 
-	_, err := repo.ListActive(withTenant(context.Background(), "tenant-message-intruder"), "event-message-owner", domain.AudiencesVisibleTo(""))
-	if !errors.Is(err, tenantctx.ErrMismatch) {
-		t.Errorf("ListActive error = %v, want %v", err, tenantctx.ErrMismatch)
+	for tenant, want := range map[string][]domain.MessageID{
+		"tenant-message-first":  {first.ID},
+		"tenant-message-second": {second.ID},
+		"tenant-message-none":   {},
+	} {
+		got, err := repo.ListActive(context.Background(), tenant, event, domain.AudiencesVisibleTo(domain.AudienceGuest))
+		if err != nil {
+			t.Fatalf("ListActive(%s): %v", tenant, err)
+		}
+
+		if ids := messageIDs(got); !reflect.DeepEqual(ids, want) {
+			t.Errorf("ListActive(%s) = %v, want %v", tenant, ids, want)
+		}
 	}
 }

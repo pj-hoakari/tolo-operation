@@ -158,6 +158,7 @@ func TestListStaffMessages(t *testing.T) {
 			client, authorization := newStaffCommunicationClient(t, config, useCases)
 
 			res, err := client.ListStaffMessages(authorized(authorization), &operationv1.ListStaffMessagesRequest{
+				TenantId: testTenantPublicID,
 				EventId:  testEventPublicID,
 				Audience: operationv1.Audience_AUDIENCE_GUEST,
 			})
@@ -165,8 +166,13 @@ func TestListStaffMessages(t *testing.T) {
 				t.Fatalf("ListStaffMessages: %v", err)
 			}
 
-			if useCases.listInput.Audience != domain.AudienceGuest {
-				t.Errorf("audience input = %q, want %q", useCases.listInput.Audience, domain.AudienceGuest)
+			wantInput := application.ListStaffMessagesInput{
+				TenantID: testTenantPublicID,
+				EventID:  testEventPublicID,
+				Audience: domain.AudienceGuest,
+			}
+			if useCases.listInput != wantInput {
+				t.Errorf("input = %+v, want %+v", useCases.listInput, wantInput)
 			}
 
 			got := make([]string, 0, len(res.GetMessages()))
@@ -220,6 +226,27 @@ func TestStaffCommunicationRejectsInvalidMessages(t *testing.T) {
 		_, got := client.SendStaffMessage(authorized(authorization), &operationv1.SendStaffMessageRequest{EventId: testEventPublicID})
 		if connectrpc.CodeOf(got) != connectrpc.CodeInvalidArgument {
 			t.Errorf("%v: SendStaffMessage error code = %v, want %v", err, connectrpc.CodeOf(got), connectrpc.CodeInvalidArgument)
+		}
+	}
+}
+
+func TestListStaffMessagesTenantErrors(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		err  error
+		code connectrpc.Code
+	}{
+		{domain.ErrTenantRequired, connectrpc.CodeInvalidArgument},
+		{tenantctx.ErrMismatch, connectrpc.CodePermissionDenied},
+	}
+
+	for _, tt := range tests {
+		client, authorization := newStaffCommunicationClient(t, staffToken("events.read"), &fakeStaffCommunication{err: tt.err})
+
+		_, err := client.ListStaffMessages(authorized(authorization), &operationv1.ListStaffMessagesRequest{EventId: testEventPublicID})
+		if got := connectrpc.CodeOf(err); got != tt.code {
+			t.Errorf("%v: ListStaffMessages error code = %v, want %v", tt.err, got, tt.code)
 		}
 	}
 }

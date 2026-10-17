@@ -13,7 +13,7 @@ CREATE TABLE staff_messages (
     CHECK (kind = 'guidance_info' OR related_route_ids = '[]'),
     CHECK (kind = 'staff_message' OR audience = 'staff')
 );
-CREATE INDEX staff_messages_event_id_sent_at_idx ON staff_messages (event_id, sent_at);
+CREATE INDEX staff_messages_tenant_event_sent_at_idx ON staff_messages (tenant_public_id, event_id, sent_at);
 
 CREATE TABLE reassignments (
     id BIGSERIAL PRIMARY KEY,

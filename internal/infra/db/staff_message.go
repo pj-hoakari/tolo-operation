@@ -10,7 +10,6 @@ import (
 
 	"github.com/pj-hoakari/tolo-operation/internal/domain"
 	"github.com/pj-hoakari/tolo-operation/internal/repository"
-	"github.com/pj-hoakari/tolo-operation/internal/tenantctx"
 )
 
 type PostgresStaffMessageRepository struct {
@@ -81,7 +80,7 @@ func (r *PostgresStaffMessageRepository) Revoke(
 
 func (r *PostgresStaffMessageRepository) ListActive(
 	ctx context.Context,
-	eventID string,
+	tenantPublicID, eventID string,
 	audiences []domain.Audience,
 ) ([]domain.StaffMessage, error) {
 	audienceValues := make([]string, 0, len(audiences))
@@ -94,8 +93,8 @@ func (r *PostgresStaffMessageRepository) ListActive(
 	err := sqlx.SelectContext(ctx, Executor(ctx, r.db), &rows, `
 		SELECT message_id, tenant_public_id, event_id, sender_user_id, kind, audience, body, related_route_ids, sent_at
 		FROM staff_messages
-		WHERE event_id = $1 AND revoked_at IS NULL AND audience = ANY($2)
-		ORDER BY sent_at, id`, eventID, audienceValues)
+		WHERE tenant_public_id = $1 AND event_id = $2 AND revoked_at IS NULL AND audience = ANY($3)
+		ORDER BY sent_at, id`, tenantPublicID, eventID, audienceValues)
 	if err != nil {
 		return nil, fmt.Errorf("select staff messages: %w", err)
 	}
@@ -103,10 +102,6 @@ func (r *PostgresStaffMessageRepository) ListActive(
 	messages := make([]domain.StaffMessage, 0, len(rows))
 
 	for _, row := range rows {
-		if err := tenantctx.VerifyOwnership(ctx, row.TenantPublicID); err != nil {
-			return nil, err
-		}
-
 		message := domain.StaffMessage{
 			ID:              domain.MessageID(row.ID),
 			TenantPublicID:  row.TenantPublicID,

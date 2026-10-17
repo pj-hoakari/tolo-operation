@@ -13,5 +13,5 @@ var ErrStaffMessageNotFound = errors.New("staff message not found")
 type StaffMessageRepository interface {
 	Create(ctx context.Context, message domain.StaffMessage) error
 	Revoke(ctx context.Context, tenantPublicID, eventID string, id domain.MessageID, revokedAt time.Time) error
-	ListActive(ctx context.Context, eventID string, audiences []domain.Audience) ([]domain.StaffMessage, error)
+	ListActive(ctx context.Context, tenantPublicID, eventID string, audiences []domain.Audience) ([]domain.StaffMessage, error)
 }
