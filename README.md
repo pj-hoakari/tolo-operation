@@ -100,13 +100,14 @@ Jaeger UI は `http://localhost:16686`（停止は `task down:o11y`）
 
 ```bash
 # ES256 の内部 JWT と対応する JWKS ドキュメントを JSON で出力
-go tool jwtgen -audience tolo-operation -tenant-public-id 0123456789abcdef -scope <scope> -ttl 10m
+go tool jwtgen -audience tolo-operation -token-use event_access -tenant-public-id 0123456789abcdef -event-public-id fedcba9876543210 -subject staff-user-1 -scope events.operate -ttl 10m
 ```
 
-- `-token-use` は `tenant_access`（既定）、`event_access`、`registration`、`service` を取る
-- `tenant_access` では `-tenant-public-id`（ランダムな 16 文字 hex）と `-scope` が必須である。必要な scope は proto の `required_scopes` で宣言されている
+- `-token-use` は `tenant_access`（既定）、`event_access`、`registration`、`service` を取る。本サービスの RPC は `event_access` を要求し、`ListStaffMessages` は `service` も受け付ける。`RequestProposalDelivery` と `RecordFeedbackValues` は `service` だけを受け付ける
+- `event_access` では `-tenant-public-id` と `-event-public-id`（どちらもランダムな 16 文字 hex）、`-scope` が必須である。必要な scope（`events.read`／`events.operate`）は proto の `required_scopes` で宣言されている
 - `-issuer` の既定は `service-gateway`、`-audience` に既定はないので `tolo-operation` を明示する
-- そのほかのフラグは `-event-public-id`、`-origin-sub`、`-subject`、`-txn`、`-kid`（既定 `test-key`）、`-ttl`（既定 2 分）である
+- `-subject` はトークンの `sub` で、本サービスはこれをメッセージの送信者や接続状態の `user_id` として扱う
+- そのほかのフラグは `-origin-sub`、`-txn`、`-kid`（既定 `test-key`）、`-ttl`（既定 2 分）である
 
 出力は `token` / `claims` / `jwks` を持つ JSON である  
 `jwks` を任意の HTTP エンドポイント（例: ローカルのファイルサーバ）で配信し、`INTERNAL_JWKS_URL` にその URL を設定すると、`Authorization: Bearer <token>` で呼び出せる

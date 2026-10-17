@@ -95,10 +95,16 @@ tasks:
         cmds:
           - go tool protoc-gen-authz-go --write-proto proto
 
+    proto:write-kernel:
+        desc: Write kernel proto to proto directory.
+        cmds:
+          - go tool tolo-kernel-proto --write-proto proto
+
     proto:lint:
         desc: Lint proto.
         deps:
           - proto:write-authz
+          - proto:write-kernel
         cmds:
             - buf lint
 
@@ -106,6 +112,7 @@ tasks:
         desc: Regenerate connect-go code from proto.
         deps:
           - proto:write-authz
+          - proto:write-kernel
         cmds:
             - buf generate --template buf.gen.go.yaml
         sources:
@@ -119,6 +126,7 @@ tasks:
         desc: Regenerate connect-es code from proto.
         deps:
           - proto:write-authz
+          - proto:write-kernel
         cmds:
             - buf generate --template buf.gen.es.yaml
         sources:

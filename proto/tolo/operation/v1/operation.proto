@@ -1,0 +1,343 @@
+syntax = "proto3";
+
+package tolo.operation.v1;
+
+import "authz/v1/options.proto";
+import "google/protobuf/timestamp.proto";
+import "tolo/kernel/v1/kernel.proto";
+
+service StaffCommunicationService {
+  rpc SendStaffMessage(SendStaffMessageRequest) returns (StaffMessage) {
+    option (authz.v1.auth_policy) = {
+      level: AUTH_LEVEL_AUTHENTICATED
+      required_scopes: "events.operate"
+      token_uses: "event_access"
+    };
+  }
+  rpc RevokeStaffMessage(RevokeStaffMessageRequest) returns (RevokeStaffMessageResponse) {
+    option (authz.v1.auth_policy) = {
+      level: AUTH_LEVEL_AUTHENTICATED
+      required_scopes: "events.operate"
+      token_uses: "event_access"
+    };
+  }
+  rpc ShareGuidanceInfo(ShareGuidanceInfoRequest) returns (StaffMessage) {
+    option (authz.v1.auth_policy) = {
+      level: AUTH_LEVEL_AUTHENTICATED
+      required_scopes: "events.operate"
+      token_uses: "event_access"
+    };
+  }
+  rpc ListStaffMessages(ListStaffMessagesRequest) returns (ListStaffMessagesResponse) {
+    option (authz.v1.auth_policy) = {
+      level: AUTH_LEVEL_AUTHENTICATED
+      required_scopes: "events.read"
+      token_uses: "event_access"
+      token_uses: "service"
+    };
+  }
+}
+
+service OperationControlService {
+  rpc DirectReassignment(DirectReassignmentRequest) returns (Reassignment) {
+    option (authz.v1.auth_policy) = {
+      level: AUTH_LEVEL_AUTHENTICATED
+      required_scopes: "events.operate"
+      token_uses: "event_access"
+    };
+  }
+  rpc ApplyReassignment(ApplyReassignmentRequest) returns (Reassignment) {
+    option (authz.v1.auth_policy) = {
+      level: AUTH_LEVEL_AUTHENTICATED
+      required_scopes: "events.operate"
+      token_uses: "event_access"
+    };
+  }
+  rpc ListReassignments(ListReassignmentsRequest) returns (ListReassignmentsResponse) {
+    option (authz.v1.auth_policy) = {
+      level: AUTH_LEVEL_AUTHENTICATED
+      required_scopes: "events.read"
+      token_uses: "event_access"
+    };
+  }
+}
+
+service DeliveryCoordinationService {
+  rpc RequestProposalDelivery(RequestProposalDeliveryRequest) returns (RequestProposalDeliveryResponse) {
+    option (authz.v1.auth_policy) = { level: AUTH_LEVEL_INTERNAL };
+  }
+  rpc RecordFeedbackValues(RecordFeedbackValuesRequest) returns (RecordFeedbackValuesResponse) {
+    option (authz.v1.auth_policy) = { level: AUTH_LEVEL_INTERNAL };
+  }
+  rpc UpdateConnectionState(UpdateConnectionStateRequest) returns (UpdateConnectionStateResponse) {
+    option (authz.v1.auth_policy) = {
+      level: AUTH_LEVEL_AUTHENTICATED
+      required_scopes: "events.read"
+      token_uses: "event_access"
+    };
+  }
+}
+
+service DigestService {
+  rpc GetHistoryDigest(GetHistoryDigestRequest) returns (HistoryDigest) {
+    option (authz.v1.auth_policy) = {
+      level: AUTH_LEVEL_AUTHENTICATED
+      required_scopes: "events.read"
+      token_uses: "event_access"
+    };
+  }
+}
+
+message StaffMessage {
+  string message_id = 1;
+  string event_id = 2;
+  string sender_user_id = 3;
+  Audience audience = 4;
+  string body = 5;
+  google.protobuf.Timestamp sent_at = 6;
+}
+enum Audience {
+  AUDIENCE_UNSPECIFIED = 0;
+  AUDIENCE_STAFF = 1;
+  AUDIENCE_GUEST = 2;
+  AUDIENCE_BOTH = 3;
+}
+
+message SendStaffMessageRequest {
+  string event_id = 1;
+  Audience audience = 2;
+  string body = 3;
+}
+message RevokeStaffMessageRequest {
+  string event_id = 1;
+  string message_id = 2;
+}
+message RevokeStaffMessageResponse {}
+
+message ShareGuidanceInfoRequest {
+  string event_id = 1;
+  string body = 2;
+  repeated string related_route_ids = 3;
+}
+message ListStaffMessagesRequest {
+  string event_id = 1;
+  Audience audience = 2;
+}
+message ListStaffMessagesResponse {
+  repeated StaffMessage messages = 1;
+}
+
+message Reassignment {
+  string reassignment_id = 1;
+  string event_id = 2;
+  string staff_user_id = 3;
+  oneof target {
+    string observation_point_id = 4;
+    string gate_point_id = 5;
+    tolo.kernel.v1.GraphAnchor anchor = 7;
+  }
+  ReassignmentStatus status = 6;
+}
+enum ReassignmentStatus {
+  REASSIGNMENT_STATUS_UNSPECIFIED = 0;
+  REASSIGNMENT_STATUS_DIRECTED = 1;
+  REASSIGNMENT_STATUS_APPLIED = 2;
+}
+
+message DirectReassignmentRequest {
+  string event_id = 1;
+  string staff_user_id = 2;
+  oneof target {
+    string observation_point_id = 3;
+    string gate_point_id = 4;
+    tolo.kernel.v1.GraphAnchor anchor = 5;
+  }
+}
+message ApplyReassignmentRequest {
+  string reassignment_id = 1;
+}
+message ListReassignmentsRequest {
+  string event_id = 1;
+}
+message ListReassignmentsResponse {
+  repeated Reassignment reassignments = 1;
+}
+
+message RequestProposalDeliveryRequest {
+  string event_id = 1;
+  oneof payload {
+    FlowProposals flow_proposals = 2;
+    LineGuidance line_guidance = 3;
+  }
+}
+message RequestProposalDeliveryResponse {
+  string delivery_id = 1;
+  int32 realtime_count = 2;
+  int32 notification_count = 3;
+}
+
+message RecordFeedbackValuesRequest {
+  string event_id = 1;
+  FeedbackValues values = 2;
+}
+message RecordFeedbackValuesResponse {}
+
+message FlowProposals {
+  repeated RouteImportance route_importances = 1;
+  repeated DirectionProposal direction_proposals = 2;
+  repeated RestrictionProposal restriction_proposals = 3;
+  repeated DetourProposal detour_proposals = 4;
+  repeated BoundaryControlProposal boundary_controls = 5;
+  google.protobuf.Timestamp solved_at = 6;
+}
+enum RouteDirection {
+  ROUTE_DIRECTION_UNSPECIFIED = 0;
+  ROUTE_DIRECTION_FORWARD = 1;
+  ROUTE_DIRECTION_BACKWARD = 2;
+  ROUTE_DIRECTION_BOTH_WAYS = 3;
+}
+message RouteImportance {
+  string route_id = 1;
+  optional RouteDirection direction = 2;
+  double importance = 3;
+}
+message DirectionProposal {
+  string route_id = 1;
+  RouteDirection proposed_direction = 2;
+  DirectionChange change = 3;
+  double confidence = 4;
+}
+enum DirectionChange {
+  DIRECTION_CHANGE_UNSPECIFIED = 0;
+  DIRECTION_CHANGE_CONVERT_ONE_WAY = 1;
+  DIRECTION_CHANGE_RELEASE_ONE_WAY = 2;
+  DIRECTION_CHANGE_FLIP_ONE_WAY = 3;
+  DIRECTION_CHANGE_KEEP = 4;
+}
+message RestrictionProposal {
+  string route_id = 1;
+  RestrictionAction action = 2;
+  optional double limit_value = 3;
+  RestrictionReason reason = 4;
+  double confidence = 5;
+}
+enum RestrictionAction {
+  RESTRICTION_ACTION_UNSPECIFIED = 0;
+  RESTRICTION_ACTION_CLOSE = 1;
+  RESTRICTION_ACTION_LIMIT = 2;
+  RESTRICTION_ACTION_RESUME = 3;
+}
+enum RestrictionReason {
+  RESTRICTION_REASON_UNSPECIFIED = 0;
+  RESTRICTION_REASON_UNDRAINABLE_STAGNATION = 1;
+  RESTRICTION_REASON_RESIDUAL_STAGNATION = 2;
+  RESTRICTION_REASON_PUNCTURE = 3;
+  RESTRICTION_REASON_DANGER_UPSTREAM = 4;
+  RESTRICTION_REASON_OVERLOAD = 5;
+}
+message DetourProposal {
+  string origin_route_id = 1;
+  repeated string route_ids = 2;
+  double confidence = 3;
+}
+message BoundaryControlProposal {
+  string point_id = 1;
+  BoundaryAction action = 2;
+}
+enum BoundaryAction {
+  BOUNDARY_ACTION_UNSPECIFIED = 0;
+  BOUNDARY_ACTION_PAUSE_INGRESS = 1;
+  BOUNDARY_ACTION_PAUSE_EGRESS = 2;
+  BOUNDARY_ACTION_RESUME = 3;
+}
+
+message LineGuidance {
+  repeated QueueSummary queues = 1;
+  repeated QueueChange changes = 2;
+  repeated GateRecommendation recommendations = 3;
+  repeated GateAvailability availability = 4;
+  repeated QueueShapeProposal shape_proposals = 5;
+}
+message QueueSummary {
+  string queue_id = 1;
+  repeated string gate_point_ids = 2;
+  double queue_length_people = 3;
+  optional double queue_length_meters = 4;
+  double wait_time_minutes = 5;
+  int32 lane_count = 6;
+  int32 turnaround_count = 7;
+}
+message QueueChange {
+  string queue_id = 1;
+  QueueChangeKind kind = 2;
+}
+enum QueueChangeKind {
+  QUEUE_CHANGE_KIND_UNSPECIFIED = 0;
+  QUEUE_CHANGE_KIND_FORMED = 1;
+  QUEUE_CHANGE_KIND_LENGTH_CHANGED = 2;
+  QUEUE_CHANGE_KIND_WAIT_TIME_UPDATED = 3;
+  QUEUE_CHANGE_KIND_TURNAROUND_FORMED = 4;
+}
+message GateRecommendation {
+  string gate_point_id = 1;
+  string queue_id = 2;
+  double expected_wait_minutes = 3;
+}
+message GateAvailability {
+  string gate_point_id = 1;
+  bool available = 2;
+}
+message QueueShapeProposal {
+  string queue_id = 1;
+  repeated LaneChange lane_changes = 2;
+  int32 proposed_turnaround_count = 3;
+}
+message LaneChange {
+  LaneAction action = 1;
+  int32 count = 2;
+}
+enum LaneAction {
+  LANE_ACTION_UNSPECIFIED = 0;
+  LANE_ACTION_OPEN = 1;
+  LANE_ACTION_CLOSE = 2;
+}
+
+message FeedbackValues {
+  repeated FeedbackEntry entries = 1;
+  google.protobuf.Timestamp computed_at = 2;
+}
+message FeedbackEntry {
+  string attribute_tag = 1;
+  string kind = 2;
+  double value = 3;
+}
+
+message UpdateConnectionStateRequest {
+  string user_id = 1;
+  string device_id = 2;
+  bool connected = 3;
+  google.protobuf.Timestamp at = 4;
+}
+message UpdateConnectionStateResponse {}
+
+message GetHistoryDigestRequest {
+  string event_id = 1;
+  google.protobuf.Timestamp from = 2;
+  google.protobuf.Timestamp to = 3;
+}
+
+message HistoryDigest {
+  string event_id = 1;
+  google.protobuf.Timestamp from = 2;
+  google.protobuf.Timestamp to = 3;
+  repeated DigestEntry entries = 4;
+}
+message DigestEntry {
+  string kind = 1;
+  oneof target {
+    string point_id = 2;
+    string route_id = 3;
+    string queue_id = 4;
+  }
+  double value = 5;
+}

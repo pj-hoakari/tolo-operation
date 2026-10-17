@@ -1,35 +1,45 @@
 package connect
 
 import (
-	"context"
-
-	greetv1 "github.com/pj-hoakari/tolo-operation/gen/greet/v1"
-	"github.com/pj-hoakari/tolo-operation/gen/greet/v1/greetv1connect"
-	"github.com/pj-hoakari/tolo-operation/internal/application"
+	"github.com/pj-hoakari/tolo-operation/gen/tolo/operation/v1/operationv1connect"
 )
 
-// Service is the Connect transport implementation of GreetService.
-type Service struct {
-	greetv1connect.UnimplementedGreetServiceHandler
-	greetService application.GreetUseCases
+type StaffCommunicationService struct {
+	operationv1connect.UnimplementedStaffCommunicationServiceHandler
 }
 
-func NewService(greetService application.GreetUseCases) *Service {
-	return &Service{
-		UnimplementedGreetServiceHandler: greetv1connect.UnimplementedGreetServiceHandler{},
-		greetService:                     greetService,
+func NewStaffCommunicationService() *StaffCommunicationService {
+	return &StaffCommunicationService{
+		UnimplementedStaffCommunicationServiceHandler: operationv1connect.UnimplementedStaffCommunicationServiceHandler{},
 	}
 }
 
-func (s *Service) Greet(ctx context.Context, req *greetv1.GreetRequest) (*greetv1.GreetResponse, error) {
-	greeting, err := s.greetService.Greet(ctx, application.GreetInput{
-		Name: req.GetName(),
-	})
-	if err != nil {
-		return nil, connectError(ctx, err)
-	}
+type OperationControlService struct {
+	operationv1connect.UnimplementedOperationControlServiceHandler
+}
 
-	return &greetv1.GreetResponse{
-		Greeting: greeting.Message(),
-	}, nil
+func NewOperationControlService() *OperationControlService {
+	return &OperationControlService{
+		UnimplementedOperationControlServiceHandler: operationv1connect.UnimplementedOperationControlServiceHandler{},
+	}
+}
+
+type DeliveryCoordinationService struct {
+	operationv1connect.UnimplementedDeliveryCoordinationServiceHandler
+}
+
+func NewDeliveryCoordinationService() *DeliveryCoordinationService {
+	return &DeliveryCoordinationService{
+		UnimplementedDeliveryCoordinationServiceHandler: operationv1connect.UnimplementedDeliveryCoordinationServiceHandler{},
+	}
+}
+
+type DigestService struct {
+	operationv1connect.UnimplementedDigestServiceHandler
+}
+
+func NewDigestService() *DigestService {
+	return &DigestService{
+		UnimplementedDigestServiceHandler: operationv1connect.UnimplementedDigestServiceHandler{},
+	}
 }

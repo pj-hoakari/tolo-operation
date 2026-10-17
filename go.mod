@@ -6,6 +6,7 @@ tool (
 	connectrpc.com/connect/v2/cmd/protoc-gen-connect-go
 	github.com/pj-hoakari/internal-jwt-handling/cmd/jwtgen
 	github.com/pj-hoakari/protoc-gen-authz-go/cmd/protoc-gen-authz-go
+	github.com/pj-hoakari/tolo-kernel-proto/cmd/tolo-kernel-proto
 	go.uber.org/mock/mockgen
 	google.golang.org/protobuf/cmd/protoc-gen-go
 )
@@ -69,6 +70,7 @@ require (
 	github.com/moby/term v0.5.2 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.1.1 // indirect
+	github.com/pj-hoakari/tolo-kernel-proto v0.4.0 // indirect
 	github.com/power-devops/perfstat v0.0.0-20240221224432-82ca36839d55 // indirect
 	github.com/shirou/gopsutil/v4 v4.26.6 // indirect
 	github.com/sirupsen/logrus v1.9.4 // indirect
