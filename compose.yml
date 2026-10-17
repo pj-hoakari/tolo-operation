@@ -35,11 +35,21 @@ services:
         environment:
             DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
             SERVER_ADDR: :8080
+            INTERNAL_JWKS_URL: http://mockdeps:8080/.well-known/jwks.json
         depends_on:
             migrate:
                 condition: service_completed_successfully
+            mockdeps:
+                condition: service_started
         ports:
             - "8080:8080"
+
+    mockdeps:
+        build:
+            context: .
+            target: mockdeps
+        ports:
+            - "8089:8080"
 
 volumes:
     postgres-data:

@@ -28,7 +28,7 @@ golangci-lint run
 
 ### Docker Compose での起動
 
-Docker Compose で PostgreSQL、golang-migrate によるマイグレーション、および開発サーバーを起動できる
+Docker Compose で PostgreSQL、golang-migrate によるマイグレーション、開発サーバー、依存先のモック（`mockdeps`）を起動できる
 
 ```bash
 docker compose up --build
@@ -39,10 +39,18 @@ docker compose up --build
 task up:build
 ```
 
-サーバーは `http://localhost:8080`、PostgreSQL は `localhost:5432` で待ち受ける（停止は `task down`）  
+サーバーは `http://localhost:8080`、PostgreSQL は `localhost:5432`、`mockdeps` は `http://localhost:8089` で待ち受ける（停止は `task down`）  
 Compose の `migrate` サービスは `Dockerfile` の `migrate` ターゲットをビルドして起動するため、`migrations/` を追加・変更したあとは `--build` 付き（`docker compose up --build` または `task up:build`）で起動し直す  
 `task up` はイメージを再ビルドしないので、古いマイグレーションのままになる  
-RPC を呼び出すには Service Gateway 発行の内部 JWT が必要なので、`go tool jwtgen` で生成した JWKS を配信する URL を `INTERNAL_JWKS_URL` で `server` に渡す（「内部 JWT」を参照）
+Compose は他サービスを起動せず、`mockdeps` が依存先の代わりを務める（`cmd/mockdeps`、開発専用）  
+`mockdeps` は次の 2 つを 1 つのポートで提供する
+
+- `GET /.well-known/jwks.json`: 起動時に生成した ES256 鍵の JWKS。`server` の `INTERNAL_JWKS_URL` はここを指す
+- `POST /token`: 同じ鍵で内部 JWT を発行する（「内部 JWT」を参照）
+
+鍵は `mockdeps` を起動するたびに作り直されるので、再起動の後はトークンを発行し直す
+
+全サービスを実際の RPC でつないだ検証は tolo リポジトリの統合環境で行う
 
 ### 環境変数
 
@@ -50,7 +58,7 @@ RPC を呼び出すには Service Gateway 発行の内部 JWT が必要なので
 | --- | --- | --- |
 | `SERVER_ADDR` | `:8080` | 待ち受けるアドレス |
 | `DATABASE_URL` | なし（必須） | PostgreSQL の接続先 |
-| `INTERNAL_JWKS_URL` | `http://gateway:8080/.well-known/jwks.json` | 内部 JWT の検証に使う JWKS の取得先 |
+| `INTERNAL_JWKS_URL` | `http://gateway:8080/.well-known/jwks.json` | 内部 JWT の検証に使う JWKS の取得先（Compose では `mockdeps` の `http://mockdeps:8080/.well-known/jwks.json`） |
 | `INTERNAL_JWT_ISSUER` | `service-gateway` | 内部 JWT に期待する `iss` |
 | `INTERNAL_JWT_AUDIENCE` | `tolo-operation` | 内部 JWT に期待する `aud` |
 | `OUTBOX_DISPATCH_INTERVAL` | `1s` | outbox に積んだメッセージを publish する間隔（Go の duration 形式）。publish は当面ログに出力するだけで、ブローカーへは送らない |
@@ -96,22 +104,36 @@ Jaeger UI は `http://localhost:16686`（停止は `task down:o11y`）
 
 ### 内部 JWT
 
-ローカルでの動作確認には `internal-jwt-handling` 同梱の jwtgen CLI でトークンと JWKS を生成する  
-`go.mod` の `tool` に登録してあるので `go tool jwtgen` で実行できる
+RPC を呼び出すには Service Gateway 発行の内部 JWT が必要である  
+Compose で起動した場合は、`mockdeps` の `POST /token` でトークンを発行する。`server` は `mockdeps` の JWKS で検証するので、そのまま `Authorization: Bearer <token>` で呼び出せる
 
 ```bash
-# ES256 の内部 JWT と対応する JWKS ドキュメントを JSON で出力
-go tool jwtgen -audience tolo-operation -token-use event_access -tenant-public-id 0123456789abcdef -event-public-id fedcba9876543210 -subject staff-user-1 -scope events.operate -ttl 10m
+TOKEN=$(curl -s -X POST localhost:8089/token \
+  -d '{"token_use":"event_access","tenant_id":"0123456789abcdef","event_id":"fedcba9876543210","subject":"staff-user-1","scope":"events.operate events.read"}' \
+  | jq -r .token)
+
+curl -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+  localhost:8080/tolo.operation.v1.StaffCommunicationService/SendStaffMessage \
+  -d '{"tenant_id":"0123456789abcdef","event_id":"fedcba9876543210","audience":"AUDIENCE_STAFF","body":"hello"}'
+
+curl -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+  localhost:8080/tolo.operation.v1.StaffCommunicationService/ListStaffMessages \
+  -d '{"tenant_id":"0123456789abcdef","event_id":"fedcba9876543210"}'
 ```
 
-- `-token-use` は `tenant_access`（既定）、`event_access`、`registration`、`service` を取る。本サービスの RPC は `event_access` を要求し、`ListStaffMessages` は `service` も受け付ける。`RequestProposalDelivery` と `RecordFeedbackValues` は `service` だけを受け付ける
-- `event_access` では `-tenant-public-id` と `-event-public-id`（どちらもランダムな 16 文字 hex）、`-scope` が必須である。必要な scope（`events.read`／`events.operate`）は proto の `required_scopes` で宣言されている
-- `-issuer` の既定は `service-gateway`、`-audience` に既定はないので `tolo-operation` を明示する
-- `-subject` はトークンの `sub` で、本サービスはこれをメッセージの送信者や接続状態の `user_id` として扱う
-- そのほかのフラグは `-origin-sub`、`-txn`、`-kid`（既定 `test-key`）、`-ttl`（既定 2 分）である
+- 入力の JSON は `audience`（既定 `tolo-operation`）、`token_use`、`tenant_id`、`event_id`、`subject`、`scope`（空白区切り）、`ttl`（Go の duration 形式、既定 `10m`）を取る
+- `token_use` は `tenant_access`、`event_access`、`registration`、`service` を取る。本サービスの RPC は `event_access` を要求し、`ListStaffMessages` は `service` も受け付ける。`RequestProposalDelivery` と `RecordFeedbackValues` は `service` だけを受け付ける
+- `event_access` では `tenant_id` と `event_id`（どちらも 16 文字 hex）、`scope` が必須である。必要な scope（`events.read`／`events.operate`）は proto の `required_scopes` で宣言されている
+- `subject` はトークンの `sub` で、本サービスはこれをメッセージの送信者や接続状態の `user_id` として扱う
+- `iss` は `service-gateway` に固定される
+- 応答は `token` / `claims` / `jwks` を持つ JSON である
 
-出力は `token` / `claims` / `jwks` を持つ JSON である  
-`jwks` を任意の HTTP エンドポイント（例: ローカルのファイルサーバ）で配信し、`INTERNAL_JWKS_URL` にその URL を設定すると、`Authorization: Bearer <token>` で呼び出せる
+Compose を使わずにトークンを作る場合は、`internal-jwt-handling` 同梱の jwtgen CLI を `go tool jwtgen` で実行する（`go.mod` の `tool` に登録してある）  
+出力の `jwks` を任意の HTTP エンドポイントで配信し、`INTERNAL_JWKS_URL` にその URL を設定する
+
+```bash
+go tool jwtgen -audience tolo-operation -token-use event_access -tenant-public-id 0123456789abcdef -event-public-id fedcba9876543210 -subject staff-user-1 -scope events.operate -ttl 10m
+```
 
 ### connect-es の生成
 
