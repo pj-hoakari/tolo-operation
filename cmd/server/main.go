@@ -77,10 +77,12 @@ func run() error {
 		}
 	}()
 
+	now := func() time.Time { return time.Now().Truncate(time.Microsecond) }
+
 	serviceRoutes, err := connectinfra.RoutesWithJWTSettings(
 		jwtSettings,
-		application.NewStaffCommunicationService(dbinfra.NewPostgresStaffMessageRepository(db), time.Now),
-		application.NewOperationControlService(dbinfra.NewPostgresReassignmentRepository(db), time.Now),
+		application.NewStaffCommunicationService(dbinfra.NewPostgresStaffMessageRepository(db), now),
+		application.NewOperationControlService(dbinfra.NewPostgresReassignmentRepository(db), now),
 		application.NewDeliveryCoordinationService(
 			dbinfra.NewPostgresConnectionStateRepository(db),
 			dbinfra.NewPostgresFeedbackRepository(db),
