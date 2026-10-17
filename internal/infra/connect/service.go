@@ -146,6 +146,7 @@ func (s *OperationControlService) DirectReassignment(
 	req *operationv1.DirectReassignmentRequest,
 ) (*operationv1.Reassignment, error) {
 	input := application.DirectReassignmentInput{
+		TenantID:      req.GetTenantId(),
 		EventID:       req.GetEventId(),
 		StaffUserID:   req.GetStaffUserId(),
 		TargetKind:    "",
@@ -182,6 +183,8 @@ func (s *OperationControlService) ApplyReassignment(
 	req *operationv1.ApplyReassignmentRequest,
 ) (*operationv1.Reassignment, error) {
 	reassignment, err := s.useCases.ApplyReassignment(ctx, application.ApplyReassignmentInput{
+		TenantID:       req.GetTenantId(),
+		EventID:        req.GetEventId(),
 		ReassignmentID: req.GetReassignmentId(),
 	})
 	if err != nil {
@@ -195,7 +198,10 @@ func (s *OperationControlService) ListReassignments(
 	ctx context.Context,
 	req *operationv1.ListReassignmentsRequest,
 ) (*operationv1.ListReassignmentsResponse, error) {
-	reassignments, err := s.useCases.ListReassignments(ctx, application.ListReassignmentsInput{EventID: req.GetEventId()})
+	reassignments, err := s.useCases.ListReassignments(ctx, application.ListReassignmentsInput{
+		TenantID: req.GetTenantId(),
+		EventID:  req.GetEventId(),
+	})
 	if err != nil {
 		return nil, connectError(ctx, err)
 	}

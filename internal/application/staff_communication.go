@@ -162,19 +162,6 @@ func requestScope(ctx context.Context, tenantID, eventID string) (string, string
 	return tenantID, eventID, nil
 }
 
-func eventTenant(ctx context.Context, eventID string) (string, error) {
-	if err := tenantctx.EnsureEvent(ctx, eventID); err != nil {
-		return "", err
-	}
-
-	tenantPublicID, ok := tenantctx.TenantPublicIDFromContext(ctx)
-	if !ok {
-		return "", tenantctx.ErrMissing
-	}
-
-	return tenantPublicID, nil
-}
-
 func subject(ctx context.Context) (string, error) {
 	subject, ok := tenantctx.SubjectFromContext(ctx)
 	if !ok {

@@ -15,6 +15,12 @@ import (
 
 const testReassignmentID = "8877665544332211"
 
+var applyInput = application.ApplyReassignmentInput{
+	TenantID:       testTenantPublicID,
+	EventID:        testEventPublicID,
+	ReassignmentID: testReassignmentID,
+}
+
 func newOperationControl(t *testing.T) (*application.OperationControlService, *MockReassignmentRepository) {
 	t.Helper()
 
@@ -51,6 +57,7 @@ func TestDirectReassignment(t *testing.T) {
 	position := 0.4
 
 	reassignment, err := service.DirectReassignment(withEventToken(testEventPublicID), application.DirectReassignmentInput{
+		TenantID:      testTenantPublicID,
 		EventID:       testEventPublicID,
 		StaffUserID:   "staff-2",
 		TargetKind:    domain.TargetGraphRoute,
@@ -75,6 +82,7 @@ func TestDirectReassignmentRequiresATarget(t *testing.T) {
 	service, _ := newOperationControl(t)
 
 	_, err := service.DirectReassignment(withEventToken(testEventPublicID), application.DirectReassignmentInput{
+		TenantID:    testTenantPublicID,
 		EventID:     testEventPublicID,
 		StaffUserID: "staff-2",
 	})
@@ -97,7 +105,7 @@ func TestApplyReassignmentMovesADirectedReassignmentToApplied(t *testing.T) {
 		return nil
 	})
 
-	applied, err := service.ApplyReassignment(withEventToken(testEventPublicID), application.ApplyReassignmentInput{ReassignmentID: testReassignmentID})
+	applied, err := service.ApplyReassignment(withEventToken(testEventPublicID), applyInput)
 	if err != nil {
 		t.Fatalf("ApplyReassignment: %v", err)
 	}
@@ -114,7 +122,7 @@ func TestApplyReassignmentIsIdempotent(t *testing.T) {
 	stored := storedReassignment(t, testEventPublicID, domain.ReassignmentApplied)
 	reassignments.EXPECT().FindByID(gomock.Any(), gomock.Any(), gomock.Any()).Return(stored, nil)
 
-	applied, err := service.ApplyReassignment(withEventToken(testEventPublicID), application.ApplyReassignmentInput{ReassignmentID: testReassignmentID})
+	applied, err := service.ApplyReassignment(withEventToken(testEventPublicID), applyInput)
 	if err != nil {
 		t.Fatalf("ApplyReassignment: %v", err)
 	}
@@ -124,16 +132,16 @@ func TestApplyReassignmentIsIdempotent(t *testing.T) {
 	}
 }
 
-func TestApplyReassignmentRejectsAnotherEventsReassignment(t *testing.T) {
+func TestApplyReassignmentDoesNotFindAnotherEventsReassignment(t *testing.T) {
 	t.Parallel()
 
 	service, reassignments := newOperationControl(t)
-	reassignments.EXPECT().FindByID(gomock.Any(), gomock.Any(), gomock.Any()).
+	reassignments.EXPECT().FindByID(gomock.Any(), testTenantPublicID, domain.ReassignmentID(testReassignmentID)).
 		Return(storedReassignment(t, otherEventPublicID, domain.ReassignmentDirected), nil)
 
-	_, err := service.ApplyReassignment(withEventToken(testEventPublicID), application.ApplyReassignmentInput{ReassignmentID: testReassignmentID})
-	if !errors.Is(err, tenantctx.ErrEventMismatch) {
-		t.Errorf("ApplyReassignment error = %v, want %v", err, tenantctx.ErrEventMismatch)
+	_, err := service.ApplyReassignment(withEventToken(testEventPublicID), applyInput)
+	if !errors.Is(err, repository.ErrReassignmentNotFound) {
+		t.Errorf("ApplyReassignment error = %v, want %v", err, repository.ErrReassignmentNotFound)
 	}
 }
 
@@ -143,7 +151,7 @@ func TestApplyReassignmentReportsAnUnknownReassignment(t *testing.T) {
 	service, reassignments := newOperationControl(t)
 	reassignments.EXPECT().FindByID(gomock.Any(), gomock.Any(), gomock.Any()).Return(domain.Reassignment{}, repository.ErrReassignmentNotFound)
 
-	_, err := service.ApplyReassignment(withEventToken(testEventPublicID), application.ApplyReassignmentInput{ReassignmentID: testReassignmentID})
+	_, err := service.ApplyReassignment(withEventToken(testEventPublicID), applyInput)
 	if !errors.Is(err, repository.ErrReassignmentNotFound) {
 		t.Errorf("ApplyReassignment error = %v, want %v", err, repository.ErrReassignmentNotFound)
 	}
@@ -156,7 +164,10 @@ func TestListReassignments(t *testing.T) {
 	current := []domain.Reassignment{storedReassignment(t, testEventPublicID, domain.ReassignmentApplied)}
 	reassignments.EXPECT().ListCurrent(gomock.Any(), testTenantPublicID, testEventPublicID).Return(current, nil)
 
-	got, err := service.ListReassignments(withEventToken(testEventPublicID), application.ListReassignmentsInput{EventID: testEventPublicID})
+	got, err := service.ListReassignments(withEventToken(testEventPublicID), application.ListReassignmentsInput{
+		TenantID: testTenantPublicID,
+		EventID:  testEventPublicID,
+	})
 	if err != nil {
 		t.Fatalf("ListReassignments: %v", err)
 	}
@@ -164,8 +175,52 @@ func TestListReassignments(t *testing.T) {
 	if len(got) != 1 || got[0] != current[0] {
 		t.Errorf("ListReassignments = %+v, want %+v", got, current)
 	}
+}
 
-	if _, err := service.ListReassignments(withEventToken(testEventPublicID), application.ListReassignmentsInput{EventID: otherEventPublicID}); !errors.Is(err, tenantctx.ErrEventMismatch) {
-		t.Errorf("ListReassignments(other event) error = %v, want %v", err, tenantctx.ErrEventMismatch)
+func TestOperationControlChecksTheRequestScope(t *testing.T) {
+	t.Parallel()
+
+	calls := map[string]func(*application.OperationControlService, context.Context, string, string) error{
+		"direct": func(service *application.OperationControlService, ctx context.Context, tenantID, eventID string) error {
+			_, err := service.DirectReassignment(ctx, application.DirectReassignmentInput{
+				TenantID: tenantID, EventID: eventID, StaffUserID: "staff-2", TargetKind: domain.TargetGatePoint, TargetID: "gate-1",
+			})
+
+			return err
+		},
+		"apply": func(service *application.OperationControlService, ctx context.Context, tenantID, eventID string) error {
+			_, err := service.ApplyReassignment(ctx, application.ApplyReassignmentInput{
+				TenantID: tenantID, EventID: eventID, ReassignmentID: testReassignmentID,
+			})
+
+			return err
+		},
+		"list": func(service *application.OperationControlService, ctx context.Context, tenantID, eventID string) error {
+			_, err := service.ListReassignments(ctx, application.ListReassignmentsInput{TenantID: tenantID, EventID: eventID})
+
+			return err
+		},
+	}
+
+	tests := []struct {
+		name     string
+		tenantID string
+		eventID  string
+		want     error
+	}{
+		{"missing tenant", " ", testEventPublicID, domain.ErrTenantRequired},
+		{"missing event", testTenantPublicID, " ", domain.ErrEventRequired},
+		{"tenant other than the token's", otherTenantPublicID, testEventPublicID, tenantctx.ErrMismatch},
+		{"event other than the token's", testTenantPublicID, otherEventPublicID, tenantctx.ErrEventMismatch},
+	}
+
+	for name, call := range calls {
+		for _, tt := range tests {
+			service, _ := newOperationControl(t)
+
+			if err := call(service, withEventToken(testEventPublicID), tt.tenantID, tt.eventID); !errors.Is(err, tt.want) {
+				t.Errorf("%s with %s: error = %v, want %v", name, tt.name, err, tt.want)
+			}
+		}
 	}
 }
