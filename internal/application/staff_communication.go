@@ -129,6 +129,19 @@ func (s *StaffCommunicationService) ListStaffMessages(ctx context.Context, input
 	return messages, nil
 }
 
+func requestTenant(ctx context.Context, tenantID string) (string, error) {
+	tenantID = strings.TrimSpace(tenantID)
+	if tenantID == "" {
+		return "", domain.ErrTenantRequired
+	}
+
+	if err := tenantctx.VerifyOwnership(ctx, tenantID); err != nil {
+		return "", err
+	}
+
+	return tenantID, nil
+}
+
 func eventTenant(ctx context.Context, eventID string) (string, error) {
 	if err := tenantctx.EnsureEvent(ctx, eventID); err != nil {
 		return "", err

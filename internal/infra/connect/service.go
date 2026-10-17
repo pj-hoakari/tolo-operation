@@ -284,6 +284,7 @@ func (s *DeliveryCoordinationService) RecordFeedbackValues(
 	}
 
 	err := s.useCases.RecordFeedbackValues(ctx, application.RecordFeedbackValuesInput{
+		TenantID:   req.GetTenantId(),
 		EventID:    req.GetEventId(),
 		ComputedAt: timestampTime(req.GetValues().GetComputedAt()),
 		Entries:    entries,

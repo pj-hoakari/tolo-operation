@@ -22,6 +22,7 @@ var clientErrors = []struct {
 	message string
 }{
 	{domain.ErrInvalidPublicID, connectrpc.CodeInvalidArgument, "invalid public ID"},
+	{domain.ErrTenantRequired, connectrpc.CodeInvalidArgument, "tenant_id is required"},
 	{domain.ErrEventRequired, connectrpc.CodeInvalidArgument, "event_id is required"},
 	{domain.ErrAudienceRequired, connectrpc.CodeInvalidArgument, "audience is required"},
 	{domain.ErrBodyRequired, connectrpc.CodeInvalidArgument, "body is required"},

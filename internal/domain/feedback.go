@@ -20,15 +20,16 @@ type FeedbackEntry struct {
 }
 
 type FeedbackValues struct {
-	EventID    string
-	ComputedAt time.Time
-	Entries    []FeedbackEntry
+	TenantPublicID string
+	EventID        string
+	ComputedAt     time.Time
+	Entries        []FeedbackEntry
 }
 
-func NewFeedbackValues(eventID string, computedAt time.Time, entries []FeedbackEntry) (FeedbackValues, error) {
-	eventID = strings.TrimSpace(eventID)
-	if eventID == "" {
-		return FeedbackValues{}, ErrEventRequired
+func NewFeedbackValues(tenantPublicID, eventID string, computedAt time.Time, entries []FeedbackEntry) (FeedbackValues, error) {
+	tenantPublicID, eventID, err := requireScope(tenantPublicID, eventID)
+	if err != nil {
+		return FeedbackValues{}, err
 	}
 
 	if computedAt.IsZero() {
@@ -52,5 +53,5 @@ func NewFeedbackValues(eventID string, computedAt time.Time, entries []FeedbackE
 		validated = append(validated, entry)
 	}
 
-	return FeedbackValues{EventID: eventID, ComputedAt: computedAt, Entries: validated}, nil
+	return FeedbackValues{TenantPublicID: tenantPublicID, EventID: eventID, ComputedAt: computedAt, Entries: validated}, nil
 }

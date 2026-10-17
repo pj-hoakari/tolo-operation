@@ -15,6 +15,7 @@ import (
 	"github.com/pj-hoakari/tolo-operation/gen/tolo/operation/v1/operationv1connect"
 	"github.com/pj-hoakari/tolo-operation/internal/application"
 	"github.com/pj-hoakari/tolo-operation/internal/domain"
+	"github.com/pj-hoakari/tolo-operation/internal/tenantctx"
 )
 
 type fakeDeliveryCoordination struct {
@@ -116,7 +117,8 @@ func TestRecordFeedbackValues(t *testing.T) {
 	client, authorization := newDeliveryCoordinationClient(t, observationServiceToken, useCases)
 
 	_, err := client.RecordFeedbackValues(authorized(authorization), &operationv1.RecordFeedbackValuesRequest{
-		EventId: testEventPublicID,
+		TenantId: testTenantPublicID,
+		EventId:  testEventPublicID,
 		Values: &operationv1.FeedbackValues{
 			ComputedAt: timestamppb.New(testSentAt),
 			Entries: []*operationv1.FeedbackEntry{
@@ -130,6 +132,7 @@ func TestRecordFeedbackValues(t *testing.T) {
 	}
 
 	want := application.RecordFeedbackValuesInput{
+		TenantID:   testTenantPublicID,
 		EventID:    testEventPublicID,
 		ComputedAt: testSentAt,
 		Entries: []domain.FeedbackEntry{
@@ -139,6 +142,27 @@ func TestRecordFeedbackValues(t *testing.T) {
 	}
 	if !reflect.DeepEqual(useCases.feedbackInput, want) {
 		t.Errorf("input = %+v, want %+v", useCases.feedbackInput, want)
+	}
+}
+
+func TestRecordFeedbackValuesErrors(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		err  error
+		code connectrpc.Code
+	}{
+		{domain.ErrTenantRequired, connectrpc.CodeInvalidArgument},
+		{tenantctx.ErrMismatch, connectrpc.CodePermissionDenied},
+	}
+
+	for _, tt := range tests {
+		client, authorization := newDeliveryCoordinationClient(t, observationServiceToken, &fakeDeliveryCoordination{err: tt.err})
+
+		_, err := client.RecordFeedbackValues(authorized(authorization), &operationv1.RecordFeedbackValuesRequest{EventId: testEventPublicID})
+		if got := connectrpc.CodeOf(err); got != tt.code {
+			t.Errorf("%v: RecordFeedbackValues error code = %v, want %v", tt.err, got, tt.code)
+		}
 	}
 }
 

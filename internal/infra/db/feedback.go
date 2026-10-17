@@ -29,11 +29,11 @@ func (r *PostgresFeedbackRepository) Record(ctx context.Context, values domain.F
 	}
 
 	_, err := Executor(ctx, r.db).ExecContext(ctx, `
-		INSERT INTO feedback_values (event_id, computed_at, attribute_tag, kind, value)
-		SELECT $1, $2, entry.attribute_tag, entry.kind, entry.value
-		FROM unnest($3::text[], $4::text[], $5::double precision[]) AS entry (attribute_tag, kind, value)
-		ON CONFLICT (event_id, computed_at, attribute_tag, kind) DO NOTHING`,
-		values.EventID, values.ComputedAt, tags, kinds, numbers)
+		INSERT INTO feedback_values (tenant_public_id, event_id, computed_at, attribute_tag, kind, value)
+		SELECT $1, $2, $3, entry.attribute_tag, entry.kind, entry.value
+		FROM unnest($4::text[], $5::text[], $6::double precision[]) AS entry (attribute_tag, kind, value)
+		ON CONFLICT (tenant_public_id, event_id, computed_at, attribute_tag, kind) DO NOTHING`,
+		values.TenantPublicID, values.EventID, values.ComputedAt, tags, kinds, numbers)
 	if err != nil {
 		return fmt.Errorf("insert feedback values: %w", err)
 	}

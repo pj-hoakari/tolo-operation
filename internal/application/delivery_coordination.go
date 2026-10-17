@@ -24,6 +24,7 @@ type UpdateConnectionStateInput struct {
 }
 
 type RecordFeedbackValuesInput struct {
+	TenantID   string
 	EventID    string
 	ComputedAt time.Time
 	Entries    []domain.FeedbackEntry
@@ -79,11 +80,16 @@ func (s *DeliveryCoordinationService) UpdateConnectionState(ctx context.Context,
 }
 
 func (s *DeliveryCoordinationService) RecordFeedbackValues(ctx context.Context, input RecordFeedbackValuesInput) error {
+	tenantPublicID, err := requestTenant(ctx, input.TenantID)
+	if err != nil {
+		return err
+	}
+
 	if err := tenantctx.EnsureEvent(ctx, input.EventID); err != nil {
 		return err
 	}
 
-	values, err := domain.NewFeedbackValues(input.EventID, input.ComputedAt, input.Entries)
+	values, err := domain.NewFeedbackValues(tenantPublicID, input.EventID, input.ComputedAt, input.Entries)
 	if err != nil {
 		return err
 	}

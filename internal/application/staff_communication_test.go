@@ -18,11 +18,12 @@ import (
 )
 
 const (
-	testTenantPublicID = "a1b2c3d4e5f60718"
-	testEventPublicID  = "0f1e2d3c4b5a6978"
-	otherEventPublicID = "9876543210fedcba"
-	testSubject        = "staff-user-1"
-	testMessageID      = "1122334455667788"
+	testTenantPublicID  = "a1b2c3d4e5f60718"
+	otherTenantPublicID = "8170f6e5d4c3b2a1"
+	testEventPublicID   = "0f1e2d3c4b5a6978"
+	otherEventPublicID  = "9876543210fedcba"
+	testSubject         = "staff-user-1"
+	testMessageID       = "1122334455667788"
 )
 
 var testNow = time.Date(2026, time.October, 17, 9, 0, 0, 0, time.UTC)

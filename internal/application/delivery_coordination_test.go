@@ -89,9 +89,15 @@ func TestRecordFeedbackValues(t *testing.T) {
 
 	service, _, feedback := newDeliveryCoordination(t)
 	entries := []domain.FeedbackEntry{{AttributeTag: "", Kind: "objective", Value: 0.5}}
-	feedback.EXPECT().Record(gomock.Any(), domain.FeedbackValues{EventID: testEventPublicID, ComputedAt: testNow, Entries: entries}).Return(nil)
+	feedback.EXPECT().Record(gomock.Any(), domain.FeedbackValues{
+		TenantPublicID: testTenantPublicID,
+		EventID:        testEventPublicID,
+		ComputedAt:     testNow,
+		Entries:        entries,
+	}).Return(nil)
 
 	err := service.RecordFeedbackValues(withServiceToken(), application.RecordFeedbackValuesInput{
+		TenantID:   " " + testTenantPublicID + " ",
 		EventID:    testEventPublicID,
 		ComputedAt: testNow,
 		Entries:    entries,
@@ -111,8 +117,44 @@ func TestRecordFeedbackValuesRejectsAServiceTokenForAnotherEvent(t *testing.T) {
 		EventPublicID:  otherEventPublicID,
 	})
 
-	err := service.RecordFeedbackValues(ctx, application.RecordFeedbackValuesInput{EventID: testEventPublicID, ComputedAt: testNow})
+	err := service.RecordFeedbackValues(ctx, application.RecordFeedbackValuesInput{
+		TenantID:   testTenantPublicID,
+		EventID:    testEventPublicID,
+		ComputedAt: testNow,
+	})
 	if !errors.Is(err, tenantctx.ErrEventMismatch) {
 		t.Errorf("RecordFeedbackValues error = %v, want %v", err, tenantctx.ErrEventMismatch)
+	}
+}
+
+func TestRecordFeedbackValuesChecksTheRequestTenant(t *testing.T) {
+	t.Parallel()
+
+	tenantToken := internaljwt.ContextWithClaims(context.Background(), internaljwt.Claims{
+		TokenUse:       internaljwt.TokenUseService,
+		TenantPublicID: testTenantPublicID,
+	})
+
+	tests := []struct {
+		name     string
+		ctx      context.Context
+		tenantID string
+		want     error
+	}{
+		{"missing tenant", withServiceToken(), " ", domain.ErrTenantRequired},
+		{"tenant other than the token's", tenantToken, otherTenantPublicID, tenantctx.ErrMismatch},
+	}
+
+	for _, tt := range tests {
+		service, _, _ := newDeliveryCoordination(t)
+
+		err := service.RecordFeedbackValues(tt.ctx, application.RecordFeedbackValuesInput{
+			TenantID:   tt.tenantID,
+			EventID:    testEventPublicID,
+			ComputedAt: testNow,
+		})
+		if !errors.Is(err, tt.want) {
+			t.Errorf("%s: RecordFeedbackValues error = %v, want %v", tt.name, err, tt.want)
+		}
 	}
 }

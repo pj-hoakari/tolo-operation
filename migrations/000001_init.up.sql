@@ -43,11 +43,12 @@ CREATE TABLE connection_states (
 
 CREATE TABLE feedback_values (
     id BIGSERIAL PRIMARY KEY,
+    tenant_public_id TEXT NOT NULL,
     event_id TEXT NOT NULL,
     computed_at TIMESTAMPTZ NOT NULL,
     attribute_tag TEXT NOT NULL,
     kind TEXT NOT NULL CHECK (kind <> ''),
     value DOUBLE PRECISION NOT NULL,
     received_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    UNIQUE (event_id, computed_at, attribute_tag, kind)
+    UNIQUE (tenant_public_id, event_id, computed_at, attribute_tag, kind)
 );
