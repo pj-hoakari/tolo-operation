@@ -8,7 +8,10 @@ import (
 
 type Topic string
 
-const TopicGuestMessages Topic = "guest-messages"
+const (
+	TopicGuestMessages    Topic = "guest-messages"
+	TopicRealtimeDelivery Topic = "realtime-delivery"
+)
 
 type OutboxPayload interface {
 	Topic() Topic

@@ -44,6 +44,7 @@ linters:
                 - 'net/http\.Server'
                 - 'net/http\.Client'
                 - 'net/http\.Transport'
+                - 'google\.golang\.org/protobuf/encoding/protojson\.MarshalOptions'
         wsl_v5:
             allow-first-in-block: true
             allow-whole-block: false

@@ -1,6 +1,6 @@
 CREATE TABLE outbox_messages (
     id BIGSERIAL PRIMARY KEY,
-    topic TEXT NOT NULL CHECK (topic IN ('guest-messages')),
+    topic TEXT NOT NULL CHECK (topic IN ('guest-messages', 'realtime-delivery')),
     ordering_key TEXT NOT NULL CHECK (ordering_key <> ''),
     payload JSONB NOT NULL,
     status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'sent', 'abandoned')),

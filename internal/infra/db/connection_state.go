@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/jmoiron/sqlx"
 
@@ -30,4 +31,34 @@ func (r *PostgresConnectionStateRepository) Save(ctx context.Context, state doma
 	}
 
 	return nil
+}
+
+func (r *PostgresConnectionStateRepository) ListByEvent(
+	ctx context.Context,
+	tenantPublicID, eventID string,
+) ([]domain.ConnectionState, error) {
+	var rows []struct {
+		TenantPublicID string    `db:"tenant_public_id"`
+		EventID        string    `db:"event_id"`
+		UserID         string    `db:"user_id"`
+		DeviceID       string    `db:"device_id"`
+		Connected      bool      `db:"connected"`
+		At             time.Time `db:"at"`
+	}
+
+	err := sqlx.SelectContext(ctx, Executor(ctx, r.db), &rows, `
+		SELECT tenant_public_id, event_id, user_id, device_id, connected, at
+		FROM connection_states
+		WHERE tenant_public_id = $1 AND event_id = $2
+		ORDER BY user_id, device_id`, tenantPublicID, eventID)
+	if err != nil {
+		return nil, fmt.Errorf("select connection states: %w", err)
+	}
+
+	states := make([]domain.ConnectionState, 0, len(rows))
+	for _, row := range rows {
+		states = append(states, domain.ConnectionState(row))
+	}
+
+	return states, nil
 }

@@ -41,6 +41,21 @@ func (m *MockConnectionStateRepository) EXPECT() *MockConnectionStateRepositoryM
 	return m.recorder
 }
 
+// ListByEvent mocks base method.
+func (m *MockConnectionStateRepository) ListByEvent(ctx context.Context, tenantPublicID, eventID string) ([]domain.ConnectionState, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListByEvent", ctx, tenantPublicID, eventID)
+	ret0, _ := ret[0].([]domain.ConnectionState)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListByEvent indicates an expected call of ListByEvent.
+func (mr *MockConnectionStateRepositoryMockRecorder) ListByEvent(ctx, tenantPublicID, eventID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListByEvent", reflect.TypeOf((*MockConnectionStateRepository)(nil).ListByEvent), ctx, tenantPublicID, eventID)
+}
+
 // Save mocks base method.
 func (m *MockConnectionStateRepository) Save(ctx context.Context, state domain.ConnectionState) error {
 	m.ctrl.T.Helper()

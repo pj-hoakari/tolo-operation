@@ -15,6 +15,7 @@ import (
 	connectinfra "github.com/pj-hoakari/tolo-operation/internal/infra/connect"
 	dbinfra "github.com/pj-hoakari/tolo-operation/internal/infra/db"
 	"github.com/pj-hoakari/tolo-operation/internal/infra/httpapi"
+	"github.com/pj-hoakari/tolo-operation/internal/infra/notification"
 	"github.com/pj-hoakari/tolo-operation/internal/infra/pubsub"
 	"github.com/pj-hoakari/tolo-operation/internal/logging"
 	"github.com/pj-hoakari/tolo-operation/internal/telemetry"
@@ -101,6 +102,8 @@ func run() error {
 		application.NewDeliveryCoordinationService(
 			dbinfra.NewPostgresConnectionStateRepository(db),
 			dbinfra.NewPostgresFeedbackRepository(db),
+			outbox,
+			notification.NewLogNotifier(),
 		),
 	)
 	if err != nil {

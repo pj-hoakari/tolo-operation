@@ -38,6 +38,7 @@ var clientErrors = []struct {
 	{domain.ErrStateTimeRequired, connectrpc.CodeInvalidArgument, "at is required"},
 	{domain.ErrComputedAtRequired, connectrpc.CodeInvalidArgument, "values.computed_at is required"},
 	{domain.ErrFeedbackKindRequired, connectrpc.CodeInvalidArgument, "feedback kind is required"},
+	{domain.ErrProposalRequired, connectrpc.CodeInvalidArgument, "payload must be flow_proposals or line_guidance"},
 	{domain.ErrFeedbackValueNotFinite, connectrpc.CodeInvalidArgument, "feedback value must be finite"},
 	{repository.ErrStaffMessageNotFound, connectrpc.CodeNotFound, "staff message not found"},
 	{repository.ErrReassignmentNotFound, connectrpc.CodeNotFound, "reassignment not found"},

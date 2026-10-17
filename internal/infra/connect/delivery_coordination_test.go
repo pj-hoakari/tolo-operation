@@ -2,6 +2,7 @@ package connect
 
 import (
 	"context"
+	"encoding/json"
 	"reflect"
 	"testing"
 
@@ -19,9 +20,20 @@ import (
 )
 
 type fakeDeliveryCoordination struct {
-	stateInput    application.UpdateConnectionStateInput
-	feedbackInput application.RecordFeedbackValuesInput
-	err           error
+	deliveryInput  application.RequestProposalDeliveryInput
+	deliveryResult application.DeliveryResult
+	stateInput     application.UpdateConnectionStateInput
+	feedbackInput  application.RecordFeedbackValuesInput
+	err            error
+}
+
+func (f *fakeDeliveryCoordination) RequestProposalDelivery(
+	_ context.Context,
+	input application.RequestProposalDeliveryInput,
+) (application.DeliveryResult, error) {
+	f.deliveryInput = input
+
+	return f.deliveryResult, f.err
 }
 
 func (f *fakeDeliveryCoordination) UpdateConnectionState(_ context.Context, input application.UpdateConnectionStateInput) error {
@@ -187,5 +199,97 @@ func TestRecordFeedbackValuesRejectsAnEventToken(t *testing.T) {
 	_, err := client.RecordFeedbackValues(authorized(authorization), &operationv1.RecordFeedbackValuesRequest{EventId: testEventPublicID})
 	if got, want := connectrpc.CodeOf(err), connectrpc.CodeUnauthenticated; got != want {
 		t.Errorf("RecordFeedbackValues error code = %v, want %v", got, want)
+	}
+}
+
+func TestRequestProposalDeliveryPassesEitherPayloadAndAnswersTheCounts(t *testing.T) {
+	t.Parallel()
+
+	limit := 12.5
+	tests := []struct {
+		name        string
+		request     *operationv1.RequestProposalDeliveryRequest
+		wantKind    domain.ProposalKind
+		wantContent map[string]any
+	}{
+		{
+			name: "flow proposals",
+			request: &operationv1.RequestProposalDeliveryRequest{
+				EventId:  testEventPublicID,
+				TenantId: testTenantPublicID,
+				Payload: &operationv1.RequestProposalDeliveryRequest_FlowProposals{FlowProposals: &operationv1.FlowProposals{
+					RestrictionProposals: []*operationv1.RestrictionProposal{{
+						RouteId:    "route-a",
+						Action:     operationv1.RestrictionAction_RESTRICTION_ACTION_LIMIT,
+						LimitValue: &limit,
+					}},
+				}},
+			},
+			wantKind: domain.ProposalFlowProposals,
+			wantContent: map[string]any{"restriction_proposals": []any{map[string]any{
+				"route_id": "route-a", "action": "RESTRICTION_ACTION_LIMIT", "limit_value": 12.5,
+			}}},
+		},
+		{
+			name: "line guidance",
+			request: &operationv1.RequestProposalDeliveryRequest{
+				EventId:  testEventPublicID,
+				TenantId: testTenantPublicID,
+				Payload: &operationv1.RequestProposalDeliveryRequest_LineGuidance{LineGuidance: &operationv1.LineGuidance{
+					Availability: []*operationv1.GateAvailability{{GatePointId: "gate-1", Available: true}},
+				}},
+			},
+			wantKind:    domain.ProposalLineGuidance,
+			wantContent: map[string]any{"availability": []any{map[string]any{"gate_point_id": "gate-1", "available": true}}},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			useCases := &fakeDeliveryCoordination{deliveryResult: application.DeliveryResult{
+				DeliveryID: "0199f2a8-0000-7000-8000-000000000000", RealtimeCount: 2, NotificationCount: 1,
+			}}
+			client, authorization := newDeliveryCoordinationClient(t, observationServiceToken, useCases)
+
+			res, err := client.RequestProposalDelivery(authorized(authorization), tt.request)
+			if err != nil {
+				t.Fatalf("RequestProposalDelivery: %v", err)
+			}
+
+			if res.GetDeliveryId() != "0199f2a8-0000-7000-8000-000000000000" || res.GetRealtimeCount() != 2 || res.GetNotificationCount() != 1 {
+				t.Errorf("response = %v, want the delivery ID and counts of the use case", res)
+			}
+
+			input := useCases.deliveryInput
+			if input.TenantID != testTenantPublicID || input.EventID != testEventPublicID || input.ProposalKind != tt.wantKind {
+				t.Errorf("input = %+v, want %s for the request pair", input, tt.wantKind)
+			}
+
+			var content any
+			if err := json.Unmarshal(input.ProposalContent, &content); err != nil || !reflect.DeepEqual(content, tt.wantContent) {
+				t.Errorf("content = %s, want %v", input.ProposalContent, tt.wantContent)
+			}
+		})
+	}
+}
+
+func TestRequestProposalDeliveryRejectsAMissingPayload(t *testing.T) {
+	t.Parallel()
+
+	useCases := &fakeDeliveryCoordination{err: domain.ErrProposalRequired}
+	client, authorization := newDeliveryCoordinationClient(t, observationServiceToken, useCases)
+
+	_, err := client.RequestProposalDelivery(authorized(authorization), &operationv1.RequestProposalDeliveryRequest{
+		EventId:  testEventPublicID,
+		TenantId: testTenantPublicID,
+	})
+	if got := connectrpc.CodeOf(err); got != connectrpc.CodeInvalidArgument {
+		t.Errorf("RequestProposalDelivery error code = %v, want %v", got, connectrpc.CodeInvalidArgument)
+	}
+
+	if useCases.deliveryInput.ProposalKind != "" || useCases.deliveryInput.ProposalContent != nil {
+		t.Errorf("input = %+v, want no proposal for a request without payload", useCases.deliveryInput)
 	}
 }

@@ -73,3 +73,48 @@ func TestPostgresConnectionStateRepositoryKeysByDeviceAndTenant(t *testing.T) {
 		t.Errorf("phone-1 state = %+v, want it left connected by the other device and tenant", got)
 	}
 }
+
+func TestPostgresConnectionStateRepositoryListsOnlyTheRequestedTenantAndEvent(t *testing.T) {
+	repo := NewPostgresConnectionStateRepository(testDB)
+	ctx := context.Background()
+	tenant, event := "tenant-connection-list", "event-connection-list"
+
+	for _, s := range []struct{ tenant, event, user string }{
+		{tenant, event, "staff-b"},
+		{tenant, event, "staff-a"},
+		{tenant, "event-connection-list-other", "staff-c"},
+		{"tenant-connection-list-other", event, "staff-d"},
+	} {
+		state, err := domain.NewConnectionState(s.tenant, s.event, s.user, "phone", true, baseTime)
+		if err != nil {
+			t.Fatalf("NewConnectionState: %v", err)
+		}
+
+		if err := repo.Save(ctx, state); err != nil {
+			t.Fatalf("Save: %v", err)
+		}
+	}
+
+	states, err := repo.ListByEvent(ctx, tenant, event)
+	if err != nil {
+		t.Fatalf("ListByEvent: %v", err)
+	}
+
+	var users []string
+	for _, state := range states {
+		users = append(users, state.UserID)
+
+		if state.TenantPublicID != tenant || state.EventID != event || !state.Connected || !state.At.Equal(baseTime) {
+			t.Errorf("state = %+v, want a connected state of the requested pair", state)
+		}
+	}
+
+	if len(users) != 2 || users[0] != "staff-a" || users[1] != "staff-b" {
+		t.Errorf("ListByEvent users = %v, want [staff-a staff-b]", users)
+	}
+
+	none, err := repo.ListByEvent(ctx, "tenant-connection-list-other", "event-connection-list-other")
+	if err != nil || len(none) != 0 {
+		t.Errorf("ListByEvent for a mismatched pair = %v, %v, want no states", none, err)
+	}
+}
