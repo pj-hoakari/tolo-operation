@@ -350,3 +350,23 @@ func TestEnsureEvent(t *testing.T) {
 		})
 	}
 }
+
+func TestIsServiceCall(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		ctx  context.Context
+		want bool
+	}{
+		{"service token", withEvent(context.Background(), internaljwt.TokenUseService, ""), true},
+		{"event token", withEvent(context.Background(), internaljwt.TokenUseEventAccess, "event-public-id"), false},
+		{"no claims", context.Background(), false},
+	}
+
+	for _, tt := range tests {
+		if got := tenantctx.IsServiceCall(tt.ctx); got != tt.want {
+			t.Errorf("%s: IsServiceCall() = %v, want %v", tt.name, got, tt.want)
+		}
+	}
+}

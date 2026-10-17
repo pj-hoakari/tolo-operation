@@ -18,6 +18,7 @@ import (
 	"github.com/pj-hoakari/protoc-gen-authz-go/authz"
 
 	"github.com/pj-hoakari/tolo-operation/gen/tolo/operation/v1/operationv1connect"
+	"github.com/pj-hoakari/tolo-operation/internal/application"
 )
 
 // Defaults for verifying internal JWTs. The issuer is the Service Gateway's
@@ -49,7 +50,10 @@ func DefaultJWTSettings() JWTSettings {
 
 // RoutesWithJWTSettings builds the service routes that verify internal
 // JWTs against the JWKS the settings locate.
-func RoutesWithJWTSettings(settings JWTSettings) (func(mux *http.ServeMux), error) {
+func RoutesWithJWTSettings(
+	settings JWTSettings,
+	staffCommunication application.StaffCommunicationUseCases,
+) (func(mux *http.ServeMux), error) {
 	cache, err := jwks.New(jwks.Config{
 		URL:             settings.JWKSURL,
 		HTTPClient:      nil,
@@ -69,13 +73,16 @@ func RoutesWithJWTSettings(settings JWTSettings) (func(mux *http.ServeMux), erro
 		return nil, fmt.Errorf("create internal JWT verifier: %w", err)
 	}
 
-	return RoutesWithVerifier(tokenVerifier)
+	return RoutesWithVerifier(tokenVerifier, staffCommunication)
 }
 
 // RoutesWithVerifier builds the service routes around a verifier of the
 // internal JWT. The services are guarded by one interceptor built from their
 // merged policy tables, so the credential rules stay declared in the proto.
-func RoutesWithVerifier(tokenVerifier interceptor.TokenVerifier) (func(mux *http.ServeMux), error) {
+func RoutesWithVerifier(
+	tokenVerifier interceptor.TokenVerifier,
+	staffCommunication application.StaffCommunicationUseCases,
+) (func(mux *http.ServeMux), error) {
 	// The caller sits behind the Service Gateway, so an incoming trace context is
 	// trusted and continued instead of being demoted to a span link.
 	tracing, err := otelconnect.NewServerInterceptor(otelconnect.WithTrustRemote())
@@ -106,7 +113,7 @@ func RoutesWithVerifier(tokenVerifier interceptor.TokenVerifier) (func(mux *http
 	// Tracing runs before authentication, so a rejected call is still recorded
 	// on the trace it belongs to.
 	server := connectrpc.NewServer(tracing, auth)
-	operationv1connect.RegisterStaffCommunicationServiceHandler(server, NewStaffCommunicationService())
+	operationv1connect.RegisterStaffCommunicationServiceHandler(server, NewStaffCommunicationService(staffCommunication))
 	operationv1connect.RegisterOperationControlServiceHandler(server, NewOperationControlService())
 	operationv1connect.RegisterDeliveryCoordinationServiceHandler(server, NewDeliveryCoordinationService())
 	operationv1connect.RegisterDigestServiceHandler(server, NewDigestService())

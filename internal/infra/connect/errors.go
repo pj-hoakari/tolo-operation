@@ -6,10 +6,45 @@ import (
 	"log/slog"
 
 	connectrpc "connectrpc.com/connect/v2"
+
+	"github.com/pj-hoakari/tolo-operation/internal/application"
+	"github.com/pj-hoakari/tolo-operation/internal/domain"
+	"github.com/pj-hoakari/tolo-operation/internal/repository"
+	"github.com/pj-hoakari/tolo-operation/internal/tenantctx"
 )
 
 // errInternal is the only detail a client learns about an internal failure.
 var errInternal = errors.New("internal error")
+
+var clientErrors = []struct {
+	target  error
+	code    connectrpc.Code
+	message string
+}{
+	{domain.ErrInvalidPublicID, connectrpc.CodeInvalidArgument, "invalid public ID"},
+	{domain.ErrEventRequired, connectrpc.CodeInvalidArgument, "event_id is required"},
+	{domain.ErrAudienceRequired, connectrpc.CodeInvalidArgument, "audience is required"},
+	{domain.ErrBodyRequired, connectrpc.CodeInvalidArgument, "body is required"},
+	{domain.ErrBodyTooLong, connectrpc.CodeInvalidArgument, "body must be at most 2000 characters"},
+	{domain.ErrRouteIDRequired, connectrpc.CodeInvalidArgument, "related_route_ids must not contain an empty ID"},
+	{repository.ErrStaffMessageNotFound, connectrpc.CodeNotFound, "staff message not found"},
+	{tenantctx.ErrMissing, connectrpc.CodePermissionDenied, "tenant ID is missing from the token"},
+	{tenantctx.ErrSubjectMissing, connectrpc.CodePermissionDenied, "subject is missing from the token"},
+	{tenantctx.ErrMismatch, connectrpc.CodePermissionDenied, "tenant ID does not match the token"},
+	{tenantctx.ErrEventMissing, connectrpc.CodePermissionDenied, "event ID is missing from the token"},
+	{tenantctx.ErrEventMismatch, connectrpc.CodePermissionDenied, "event ID does not match the token"},
+	{application.ErrGuestAudienceOnly, connectrpc.CodePermissionDenied, "service callers may list guest messages only"},
+}
+
+func connectError(ctx context.Context, err error) *connectrpc.Error {
+	for _, e := range clientErrors {
+		if errors.Is(err, e.target) {
+			return connectrpc.NewError(e.code, e.message).WithCause(err)
+		}
+	}
+
+	return InternalError(ctx, err)
+}
 
 // InternalError reports a failure the client can do nothing about. The cause is
 // written to the server log and replaced by a fixed message, so that no

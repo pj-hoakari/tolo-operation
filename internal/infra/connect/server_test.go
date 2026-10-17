@@ -13,12 +13,14 @@ import (
 	"connectrpc.com/connect/v2/connecthttp"
 
 	internaljwt "github.com/pj-hoakari/internal-jwt-handling"
+	"github.com/pj-hoakari/internal-jwt-handling/interceptor"
 	"github.com/pj-hoakari/internal-jwt-handling/jwks"
 	"github.com/pj-hoakari/internal-jwt-handling/jwtgen"
 	"github.com/pj-hoakari/internal-jwt-handling/verifier"
 
 	operationv1 "github.com/pj-hoakari/tolo-operation/gen/tolo/operation/v1"
 	"github.com/pj-hoakari/tolo-operation/gen/tolo/operation/v1/operationv1connect"
+	"github.com/pj-hoakari/tolo-operation/internal/application"
 )
 
 // newTestJWKSURL serves keys from an httptest endpoint, mirroring the Service
@@ -62,12 +64,32 @@ func newTestVerifier(t *testing.T, keys internaljwt.JWKS) *verifier.Verifier {
 	return tokenVerifier
 }
 
+type testUseCases struct {
+	staffCommunication application.StaffCommunicationUseCases
+}
+
+func (u testUseCases) routes(t *testing.T, tokenVerifier interceptor.TokenVerifier) (func(*http.ServeMux), error) {
+	t.Helper()
+
+	if u.staffCommunication == nil {
+		u.staffCommunication = &fakeStaffCommunication{}
+	}
+
+	return RoutesWithVerifier(tokenVerifier, u.staffCommunication)
+}
+
 // newTestHandler builds a handler serving the production service routes wired
 // to a verifier trusting keys.
 func newTestHandler(t *testing.T, keys internaljwt.JWKS) http.Handler {
 	t.Helper()
 
-	routes, err := RoutesWithVerifier(newTestVerifier(t, keys))
+	return newTestHandlerWith(t, keys, testUseCases{})
+}
+
+func newTestHandlerWith(t *testing.T, keys internaljwt.JWKS, useCases testUseCases) http.Handler {
+	t.Helper()
+
+	routes, err := useCases.routes(t, newTestVerifier(t, keys))
 	if err != nil {
 		t.Fatalf("RoutesWithVerifier() error = %v", err)
 	}
@@ -96,7 +118,7 @@ func newTestHandlerForJWKSURL(t *testing.T, jwksURL string) http.Handler {
 		t.Fatalf("create internal JWT verifier: %v", err)
 	}
 
-	routes, err := RoutesWithVerifier(tokenVerifier)
+	routes, err := testUseCases{}.routes(t, tokenVerifier)
 	if err != nil {
 		t.Fatalf("RoutesWithVerifier() error = %v", err)
 	}
@@ -189,7 +211,7 @@ func TestRoutesWithJWTSettings(t *testing.T) {
 		settings := DefaultJWTSettings()
 		settings.JWKSURL = newTestJWKSURL(t, keys)
 
-		routes, err := RoutesWithJWTSettings(settings)
+		routes, err := RoutesWithJWTSettings(settings, &fakeStaffCommunication{})
 		if err != nil {
 			t.Fatalf("RoutesWithJWTSettings() error = %v", err)
 		}
@@ -209,7 +231,7 @@ func TestRoutesWithJWTSettings(t *testing.T) {
 		settings := DefaultJWTSettings()
 		settings.JWKSURL = ""
 
-		_, err := RoutesWithJWTSettings(settings)
+		_, err := RoutesWithJWTSettings(settings, &fakeStaffCommunication{})
 		if !errors.Is(err, jwks.ErrMissingURL) {
 			t.Fatalf("RoutesWithJWTSettings() error = %v, want %v", err, jwks.ErrMissingURL)
 		}

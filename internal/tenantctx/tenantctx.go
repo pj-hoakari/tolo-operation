@@ -141,3 +141,9 @@ func EnsureEvent(ctx context.Context, eventPublicID string) error {
 
 	return nil
 }
+
+func IsServiceCall(ctx context.Context) bool {
+	claims, ok := internaljwt.ClaimsFromContext(ctx)
+
+	return ok && claims.TokenUse == internaljwt.TokenUseService
+}
