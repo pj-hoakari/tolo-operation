@@ -58,6 +58,8 @@ func TestUpdateConnectionState(t *testing.T) {
 	client, authorization := newDeliveryCoordinationClient(t, staffToken("events.read"), useCases)
 
 	_, err := client.UpdateConnectionState(authorized(authorization), &operationv1.UpdateConnectionStateRequest{
+		TenantId:  testTenantPublicID,
+		EventId:   testEventPublicID,
 		UserId:    testSubject,
 		DeviceId:  "phone-1",
 		Connected: true,
@@ -67,7 +69,14 @@ func TestUpdateConnectionState(t *testing.T) {
 		t.Fatalf("UpdateConnectionState: %v", err)
 	}
 
-	want := application.UpdateConnectionStateInput{UserID: testSubject, DeviceID: "phone-1", Connected: true, At: testSentAt}
+	want := application.UpdateConnectionStateInput{
+		TenantID:  testTenantPublicID,
+		EventID:   testEventPublicID,
+		UserID:    testSubject,
+		DeviceID:  "phone-1",
+		Connected: true,
+		At:        testSentAt,
+	}
 	if useCases.stateInput != want {
 		t.Errorf("input = %+v, want %+v", useCases.stateInput, want)
 	}
@@ -83,6 +92,10 @@ func TestUpdateConnectionStateErrors(t *testing.T) {
 		{domain.ErrStateTimeRequired, connectrpc.CodeInvalidArgument},
 		{domain.ErrDeviceRequired, connectrpc.CodeInvalidArgument},
 		{application.ErrForeignUser, connectrpc.CodePermissionDenied},
+		{domain.ErrTenantRequired, connectrpc.CodeInvalidArgument},
+		{domain.ErrEventRequired, connectrpc.CodeInvalidArgument},
+		{tenantctx.ErrMismatch, connectrpc.CodePermissionDenied},
+		{tenantctx.ErrEventMismatch, connectrpc.CodePermissionDenied},
 	}
 
 	for _, tt := range tests {

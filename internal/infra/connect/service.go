@@ -268,6 +268,8 @@ func (s *DeliveryCoordinationService) UpdateConnectionState(
 	req *operationv1.UpdateConnectionStateRequest,
 ) (*operationv1.UpdateConnectionStateResponse, error) {
 	err := s.useCases.UpdateConnectionState(ctx, application.UpdateConnectionStateInput{
+		TenantID:  req.GetTenantId(),
+		EventID:   req.GetEventId(),
 		UserID:    req.GetUserId(),
 		DeviceID:  req.GetDeviceId(),
 		Connected: req.GetConnected(),
