@@ -204,3 +204,14 @@ func TestListStaffMessagesLetsServiceCallersReadGuestMessagesOnly(t *testing.T) 
 		t.Errorf("ListStaffMessages(GUEST) as a service: %v", err)
 	}
 }
+
+func TestListStaffMessagesRequiresAnEvent(t *testing.T) {
+	t.Parallel()
+
+	service, _ := newStaffCommunication(t)
+
+	_, err := service.ListStaffMessages(withServiceToken(), application.ListStaffMessagesInput{EventID: " ", Audience: domain.AudienceGuest})
+	if !errors.Is(err, domain.ErrEventRequired) {
+		t.Errorf("ListStaffMessages error = %v, want %v", err, domain.ErrEventRequired)
+	}
+}

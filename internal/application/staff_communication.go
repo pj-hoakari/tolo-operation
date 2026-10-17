@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/pj-hoakari/tolo-operation/internal/domain"
@@ -108,6 +109,10 @@ func (s *StaffCommunicationService) RevokeStaffMessage(ctx context.Context, inpu
 }
 
 func (s *StaffCommunicationService) ListStaffMessages(ctx context.Context, input ListStaffMessagesInput) ([]domain.StaffMessage, error) {
+	if strings.TrimSpace(input.EventID) == "" {
+		return nil, domain.ErrEventRequired
+	}
+
 	if err := tenantctx.EnsureEvent(ctx, input.EventID); err != nil {
 		return nil, err
 	}
