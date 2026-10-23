@@ -186,6 +186,36 @@ message RecordFeedbackValuesRequest {
 }
 message RecordFeedbackValuesResponse {}
 
+// ---- トピックのペイロード（ADR-0106。購読する側は本サービスの Go モジュールを import する） ----
+
+// realtime-delivery トピックのペイロード（購読: Realtime）
+message DeliveryOrder {
+  string delivery_id = 1;  // 本サービスが採番する UUIDv7（時系列順序。重複排除と resume の基準）
+  string event_id = 2;
+  repeated string recipient_user_ids = 3;  // 接続状態が開のスタッフ
+  DeliveryPayload payload = 4;
+}
+// 配信内容（Realtime の FetchDeliveries もこの型で返す）
+message DeliveryPayload {
+  oneof kind {
+    FlowProposals flow_proposals = 1;  // 大域誘導の提案
+    LineGuidance line_guidance = 2;    // 局所行列誘導の案内・提案
+    StaffMessage staff_message = 3;    // スタッフメッセージ・誘導情報共有
+  }
+}
+
+// guest-messages トピックのペイロード（購読: Guest Service）
+message GuestMessagesUpdate {
+  string event_id = 1;
+  repeated GuestMessage upserts = 2;
+  repeated string revoked_message_ids = 3;  // 取り下げ
+}
+message GuestMessage {
+  string message_id = 1;
+  string body = 2;
+  google.protobuf.Timestamp sent_at = 3;
+}
+
 // ---- 大域誘導の提案（Flow の最適化結果を観測が変換） ----
 // 対象はグラフ要素の識別子（point_id／route_id）で表す。ルートの向きは from→to を順方向とする
 
@@ -363,8 +393,8 @@ message DigestEntry {
 ## 補足
 
 - 配送の支援機構（Realtime／Notification）は独立コンテキストにしない
-  Realtime へは PubSub（`realtime-delivery` トピックへ publish。Realtime）、Notification へは SendPush（同期 RPC。Notification）
-- audience が GUEST を含むスタッフメッセージは送信時に `guest-messages` トピックへ publish する（`tolo.guest.v1.GuestMessagesUpdate`。Guest Service が購読。Guest Service）
+  Realtime へは PubSub（`realtime-delivery` トピックへ `DeliveryOrder` を publish。Realtime）、Notification へは SendPush（同期 RPC。Notification）
+- audience が GUEST を含むスタッフメッセージは送信時に `guest-messages` トピックへ publish する（`GuestMessagesUpdate`。Guest Service が購読。Guest Service）
   Guest Service は自 DB に保持し、ゲストアクセス時に本サービスへ問い合わせない
 - 取り下げ（RevokeStaffMessage）は、audience が GUEST を含む場合に `revoked_message_ids` として同トピックへ publish する
   ListStaffMessages は取り下げ済みメッセージを返さない。復旧 pull の突き合わせでは、返却されるのは有効メッセージの全量であり、受信側は返却に含まれない保持中の message_id を取り下げ扱いにする
@@ -391,4 +421,6 @@ message DigestEntry {
 - 配置は同一の配置先（グラフ要素・観測点・ゲート）に複数のスタッフを置ける
   ルート途中の位置は `GraphAnchor.route_position`（比率）で表し、表示用途のみに使う
 - 蓄積型の供給（`guest-messages`・`realtime-delivery` への publish）は PubSub を経由する
-  配信の再試行はブローカーに委譲（at-least-once・DLQ）し、送信側の再試行は publish 失敗時のみ（超過はログ・アラート）
+  配信の再試行はブローカーに委譲（at-least-once）し、送信側の再試行は publish 失敗時のみ（超過はログ・アラート）
+  publish は transactional outbox から Watermill の publisher で行う。ブローカーは環境ごとに Cloud Pub/Sub と NATS JetStream を使い分ける（ADR-0107）
+  ペイロード（`DeliveryOrder`・`GuestMessagesUpdate`）の型は本サービスの package が定義する（ADR-0106）
