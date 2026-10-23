@@ -2,11 +2,11 @@ package connect
 
 import (
 	"context"
-	"encoding/json"
 	"reflect"
 	"testing"
 
 	connectrpc "connectrpc.com/connect/v2"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	internaljwt "github.com/pj-hoakari/internal-jwt-handling"
@@ -206,41 +206,39 @@ func TestRequestProposalDeliveryPassesEitherPayloadAndAnswersTheCounts(t *testin
 	t.Parallel()
 
 	limit := 12.5
+	flow := &operationv1.FlowProposals{
+		RestrictionProposals: []*operationv1.RestrictionProposal{{
+			RouteId:    "route-a",
+			Action:     operationv1.RestrictionAction_RESTRICTION_ACTION_LIMIT,
+			LimitValue: &limit,
+		}},
+	}
+	line := &operationv1.LineGuidance{
+		Availability: []*operationv1.GateAvailability{{GatePointId: "gate-1", Available: true}},
+	}
+
 	tests := []struct {
-		name        string
-		request     *operationv1.RequestProposalDeliveryRequest
-		wantKind    domain.ProposalKind
-		wantContent map[string]any
+		name    string
+		request *operationv1.RequestProposalDeliveryRequest
+		want    *operationv1.DeliveryPayload
 	}{
 		{
 			name: "flow proposals",
 			request: &operationv1.RequestProposalDeliveryRequest{
 				EventId:  testEventPublicID,
 				TenantId: testTenantPublicID,
-				Payload: &operationv1.RequestProposalDeliveryRequest_FlowProposals{FlowProposals: &operationv1.FlowProposals{
-					RestrictionProposals: []*operationv1.RestrictionProposal{{
-						RouteId:    "route-a",
-						Action:     operationv1.RestrictionAction_RESTRICTION_ACTION_LIMIT,
-						LimitValue: &limit,
-					}},
-				}},
+				Payload:  &operationv1.RequestProposalDeliveryRequest_FlowProposals{FlowProposals: flow},
 			},
-			wantKind: domain.ProposalFlowProposals,
-			wantContent: map[string]any{"restriction_proposals": []any{map[string]any{
-				"route_id": "route-a", "action": "RESTRICTION_ACTION_LIMIT", "limit_value": 12.5,
-			}}},
+			want: &operationv1.DeliveryPayload{Kind: &operationv1.DeliveryPayload_FlowProposals{FlowProposals: flow}},
 		},
 		{
 			name: "line guidance",
 			request: &operationv1.RequestProposalDeliveryRequest{
 				EventId:  testEventPublicID,
 				TenantId: testTenantPublicID,
-				Payload: &operationv1.RequestProposalDeliveryRequest_LineGuidance{LineGuidance: &operationv1.LineGuidance{
-					Availability: []*operationv1.GateAvailability{{GatePointId: "gate-1", Available: true}},
-				}},
+				Payload:  &operationv1.RequestProposalDeliveryRequest_LineGuidance{LineGuidance: line},
 			},
-			wantKind:    domain.ProposalLineGuidance,
-			wantContent: map[string]any{"availability": []any{map[string]any{"gate_point_id": "gate-1", "available": true}}},
+			want: &operationv1.DeliveryPayload{Kind: &operationv1.DeliveryPayload_LineGuidance{LineGuidance: line}},
 		},
 	}
 
@@ -263,13 +261,8 @@ func TestRequestProposalDeliveryPassesEitherPayloadAndAnswersTheCounts(t *testin
 			}
 
 			input := useCases.deliveryInput
-			if input.TenantID != testTenantPublicID || input.EventID != testEventPublicID || input.ProposalKind != tt.wantKind {
-				t.Errorf("input = %+v, want %s for the request pair", input, tt.wantKind)
-			}
-
-			var content any
-			if err := json.Unmarshal(input.ProposalContent, &content); err != nil || !reflect.DeepEqual(content, tt.wantContent) {
-				t.Errorf("content = %s, want %v", input.ProposalContent, tt.wantContent)
+			if input.TenantID != testTenantPublicID || input.EventID != testEventPublicID || !proto.Equal(input.Proposal, tt.want) {
+				t.Errorf("input = %+v, want proposal %v for the request pair", input, tt.want)
 			}
 		})
 	}
@@ -289,7 +282,7 @@ func TestRequestProposalDeliveryRejectsAMissingPayload(t *testing.T) {
 		t.Errorf("RequestProposalDelivery error code = %v, want %v", got, connectrpc.CodeInvalidArgument)
 	}
 
-	if useCases.deliveryInput.ProposalKind != "" || useCases.deliveryInput.ProposalContent != nil {
+	if useCases.deliveryInput.Proposal.GetKind() != nil {
 		t.Errorf("input = %+v, want no proposal for a request without payload", useCases.deliveryInput)
 	}
 }

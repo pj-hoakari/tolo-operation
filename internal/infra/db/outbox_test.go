@@ -1,15 +1,17 @@
 package db
 
 import (
+	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
-	"reflect"
 	"testing"
 	"time"
 
+	"google.golang.org/protobuf/proto"
+
 	internaljwt "github.com/pj-hoakari/internal-jwt-handling"
 
+	operationv1 "github.com/pj-hoakari/tolo-operation/gen/tolo/operation/v1"
 	"github.com/pj-hoakari/tolo-operation/internal/application"
 	"github.com/pj-hoakari/tolo-operation/internal/domain"
 )
@@ -53,8 +55,8 @@ func TestPostgresOutboxRepositoryListsPendingInEnqueueOrderUntilSaved(t *testing
 	ctx := context.Background()
 	key := "event-outbox-pending"
 
-	for _, payload := range []string{`{"n":1}`, `{"n":2}`, `{"n":3}`} {
-		message := domain.OutboxMessage{Topic: domain.TopicGuestMessages, OrderingKey: key, Payload: json.RawMessage(payload)}
+	for n := range byte(3) {
+		message := domain.OutboxMessage{Topic: domain.TopicGuestMessages, OrderingKey: key, Payload: []byte{0, n + 1}}
 		if err := repo.Enqueue(ctx, message); err != nil {
 			t.Fatalf("Enqueue: %v", err)
 		}
@@ -66,9 +68,8 @@ func TestPostgresOutboxRepositoryListsPendingInEnqueueOrderUntilSaved(t *testing
 	}
 
 	for i, entry := range pending {
-		var got struct{ N int }
-		if err := json.Unmarshal(entry.Message.Payload, &got); err != nil || got.N != i+1 {
-			t.Errorf("entry %d payload %s, want n=%d in enqueue order", i, entry.Message.Payload, i+1)
+		if want := []byte{0, byte(i + 1)}; !bytes.Equal(entry.Message.Payload, want) {
+			t.Errorf("entry %d payload %x, want %x in enqueue order", i, entry.Message.Payload, want)
 		}
 
 		if entry.Status != domain.OutboxPending || entry.Attempts != 0 || entry.Message.Topic != domain.TopicGuestMessages {
@@ -211,13 +212,13 @@ func TestRevokeStaffMessageEnqueuesTheRevocationOnceAndAtomically(t *testing.T) 
 		t.Fatalf("outbox rows after revoking twice = %d, want 1", len(rows))
 	}
 
-	var payload any
-	if err := json.Unmarshal(rows[0].Payload, &payload); err != nil {
+	var payload operationv1.GuestMessagesUpdate
+	if err := proto.Unmarshal(rows[0].Payload, &payload); err != nil {
 		t.Fatalf("decode payload: %v", err)
 	}
 
-	want := map[string]any{"event_id": event, "revoked_message_ids": []any{string(message.ID)}}
-	if !reflect.DeepEqual(payload, want) || rows[0].Topic != string(domain.TopicGuestMessages) {
-		t.Errorf("outbox row %s %v, want guest-messages %v", rows[0].Topic, payload, want)
+	want := &operationv1.GuestMessagesUpdate{EventId: event, RevokedMessageIds: []string{string(message.ID)}}
+	if !proto.Equal(&payload, want) || rows[0].Topic != string(domain.TopicGuestMessages) {
+		t.Errorf("outbox row %s %v, want guest-messages %v", rows[0].Topic, &payload, want)
 	}
 }
