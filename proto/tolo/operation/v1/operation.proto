@@ -192,6 +192,31 @@ message RecordFeedbackValuesRequest {
 }
 message RecordFeedbackValuesResponse {}
 
+message DeliveryOrder {
+  string delivery_id = 1;
+  string event_id = 2;
+  repeated string recipient_user_ids = 3;
+  DeliveryPayload payload = 4;
+}
+message DeliveryPayload {
+  oneof kind {
+    FlowProposals flow_proposals = 1;
+    LineGuidance line_guidance = 2;
+    StaffMessage staff_message = 3;
+  }
+}
+
+message GuestMessagesUpdate {
+  string event_id = 1;
+  repeated GuestMessage upserts = 2;
+  repeated string revoked_message_ids = 3;
+}
+message GuestMessage {
+  string message_id = 1;
+  string body = 2;
+  google.protobuf.Timestamp sent_at = 3;
+}
+
 message FlowProposals {
   repeated RouteImportance route_importances = 1;
   repeated DirectionProposal direction_proposals = 2;
