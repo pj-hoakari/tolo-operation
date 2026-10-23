@@ -2,25 +2,25 @@ package application_test
 
 import (
 	"context"
-	"encoding/json"
-	"reflect"
 	"testing"
 
 	"go.uber.org/mock/gomock"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
+	operationv1 "github.com/pj-hoakari/tolo-operation/gen/tolo/operation/v1"
 	"github.com/pj-hoakari/tolo-operation/internal/application"
 	"github.com/pj-hoakari/tolo-operation/internal/domain"
 )
 
-func decodeJSON(t *testing.T, raw []byte) any {
+func decodeProto[M proto.Message](t *testing.T, raw []byte, message M) M {
 	t.Helper()
 
-	var value any
-	if err := json.Unmarshal(raw, &value); err != nil {
-		t.Fatalf("decode %s: %v", raw, err)
+	if err := proto.Unmarshal(raw, message); err != nil {
+		t.Fatalf("decode %x: %v", raw, err)
 	}
 
-	return value
+	return message
 }
 
 func TestSendStaffMessagePublishesOnlyGuestVisibleMessages(t *testing.T) {
@@ -89,15 +89,15 @@ func TestSendStaffMessagePublishesOnlyGuestVisibleMessages(t *testing.T) {
 				t.Errorf("enqueued topic %q key %q, want guest-messages keyed by the event", got.Topic, got.OrderingKey)
 			}
 
-			want := map[string]any{
-				"event_id": testEventPublicID,
-				"upserts": []any{map[string]any{
-					"message_id": string(stored.ID),
-					"body":       "gate B is open",
-					"sent_at":    "2026-10-17T09:00:00Z",
+			want := &operationv1.GuestMessagesUpdate{
+				EventId: testEventPublicID,
+				Upserts: []*operationv1.GuestMessage{{
+					MessageId: string(stored.ID),
+					Body:      "gate B is open",
+					SentAt:    timestamppb.New(testNow),
 				}},
 			}
-			if got := decodeJSON(t, enqueued[0].Payload); !reflect.DeepEqual(got, want) {
+			if got := decodeProto(t, enqueued[0].Payload, &operationv1.GuestMessagesUpdate{}); !proto.Equal(got, want) {
 				t.Errorf("payload = %v, want %v", got, want)
 			}
 		})
@@ -133,10 +133,11 @@ func TestRevokeStaffMessagePublishesTheRevocationOnce(t *testing.T) {
 						t.Error("Enqueue ran outside the transaction that revoked the message")
 					}
 
-					want := map[string]any{"event_id": testEventPublicID, "revoked_message_ids": []any{testMessageID}}
-					if message.Topic != domain.TopicGuestMessages || message.OrderingKey != testEventPublicID ||
-						!reflect.DeepEqual(decodeJSON(t, message.Payload), want) {
-						t.Errorf("enqueued %s %s %s, want guest-messages %v", message.Topic, message.OrderingKey, message.Payload, want)
+					want := &operationv1.GuestMessagesUpdate{EventId: testEventPublicID, RevokedMessageIds: []string{testMessageID}}
+
+					got := decodeProto(t, message.Payload, &operationv1.GuestMessagesUpdate{})
+					if message.Topic != domain.TopicGuestMessages || message.OrderingKey != testEventPublicID || !proto.Equal(got, want) {
+						t.Errorf("enqueued %s %s %v, want guest-messages %v", message.Topic, message.OrderingKey, got, want)
 					}
 
 					return nil

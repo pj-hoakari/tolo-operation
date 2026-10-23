@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	operationv1 "github.com/pj-hoakari/tolo-operation/gen/tolo/operation/v1"
 	"github.com/pj-hoakari/tolo-operation/internal/domain"
 	"github.com/pj-hoakari/tolo-operation/internal/repository"
 	"github.com/pj-hoakari/tolo-operation/internal/tenantctx"
@@ -147,8 +148,8 @@ func (s *StaffCommunicationService) RevokeStaffMessage(ctx context.Context, inpu
 	})
 }
 
-func (s *StaffCommunicationService) enqueue(ctx context.Context, payload domain.OutboxPayload) error {
-	message, err := domain.NewOutboxMessage(payload)
+func (s *StaffCommunicationService) enqueue(ctx context.Context, update *operationv1.GuestMessagesUpdate) error {
+	message, err := domain.NewOutboxMessage(domain.TopicGuestMessages, update.GetEventId(), update)
 	if err != nil {
 		return err
 	}

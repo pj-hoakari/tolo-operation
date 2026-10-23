@@ -2,14 +2,15 @@ package application_test
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"reflect"
 	"testing"
 
 	"github.com/google/uuid"
 	"go.uber.org/mock/gomock"
+	"google.golang.org/protobuf/proto"
 
+	operationv1 "github.com/pj-hoakari/tolo-operation/gen/tolo/operation/v1"
 	"github.com/pj-hoakari/tolo-operation/internal/application"
 	"github.com/pj-hoakari/tolo-operation/internal/domain"
 )
@@ -67,12 +68,17 @@ func state(userID, deviceID string, connected bool) domain.ConnectionState {
 	}
 }
 
+func flowProposal() *operationv1.DeliveryPayload {
+	return &operationv1.DeliveryPayload{Kind: &operationv1.DeliveryPayload_FlowProposals{FlowProposals: &operationv1.FlowProposals{
+		DetourProposals: []*operationv1.DetourProposal{{OriginRouteId: "route-a", RouteIds: []string{"route-b"}}},
+	}}}
+}
+
 func flowProposalInput() application.RequestProposalDeliveryInput {
 	return application.RequestProposalDeliveryInput{
-		TenantID:        testTenantPublicID,
-		EventID:         testEventPublicID,
-		ProposalKind:    domain.ProposalFlowProposals,
-		ProposalContent: json.RawMessage(`{"detour_proposals":[{"origin_route_id":"route-a","route_ids":["route-b"]}]}`),
+		TenantID: testTenantPublicID,
+		EventID:  testEventPublicID,
+		Proposal: flowProposal(),
 	}
 }
 
@@ -177,20 +183,13 @@ func assertDeliveryOrder(t *testing.T, enqueued []domain.OutboxMessage, delivery
 		t.Errorf("enqueued topic %q key %q, want realtime-delivery keyed by the event", enqueued[0].Topic, enqueued[0].OrderingKey)
 	}
 
-	wantRecipients := make([]any, 0, len(recipients))
-	for _, recipient := range recipients {
-		wantRecipients = append(wantRecipients, recipient)
+	want := &operationv1.DeliveryOrder{
+		DeliveryId:       string(deliveryID),
+		EventId:          testEventPublicID,
+		RecipientUserIds: recipients,
+		Payload:          flowProposal(),
 	}
-
-	want := map[string]any{
-		"delivery_id":        string(deliveryID),
-		"event_id":           testEventPublicID,
-		"recipient_user_ids": wantRecipients,
-		"payload": map[string]any{"flow_proposals": map[string]any{
-			"detour_proposals": []any{map[string]any{"origin_route_id": "route-a", "route_ids": []any{"route-b"}}},
-		}},
-	}
-	if got := decodeJSON(t, enqueued[0].Payload); !reflect.DeepEqual(got, want) {
+	if got := decodeProto(t, enqueued[0].Payload, &operationv1.DeliveryOrder{}); !proto.Equal(got, want) {
 		t.Errorf("delivery order = %v, want %v", got, want)
 	}
 }
@@ -255,7 +254,7 @@ func TestRequestProposalDeliveryRejectsAMissingPayload(t *testing.T) {
 
 	service, _ := newProposalDelivery(t)
 	input := flowProposalInput()
-	input.ProposalKind, input.ProposalContent = "", nil
+	input.Proposal = nil
 
 	if _, err := service.RequestProposalDelivery(withServiceToken(), input); !errors.Is(err, domain.ErrProposalRequired) {
 		t.Errorf("RequestProposalDelivery error = %v, want %v", err, domain.ErrProposalRequired)
@@ -279,4 +278,3 @@ func TestRequestProposalDeliveryFailsBeforePushingWhenTheRealtimeEnqueueFails(t 
 		t.Errorf("SendPush called %d times, want none so that a retried request does not push twice", len(deps.notifier.requests))
 	}
 }
-

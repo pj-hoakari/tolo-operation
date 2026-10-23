@@ -1,9 +1,12 @@
 package domain
 
 import (
-	"encoding/json"
 	"fmt"
-	"time"
+
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/timestamppb"
+
+	operationv1 "github.com/pj-hoakari/tolo-operation/gen/tolo/operation/v1"
 )
 
 type Topic string
@@ -13,24 +16,19 @@ const (
 	TopicRealtimeDelivery Topic = "realtime-delivery"
 )
 
-type OutboxPayload interface {
-	Topic() Topic
-	OrderingKey() string
-}
-
 type OutboxMessage struct {
 	Topic       Topic
 	OrderingKey string
-	Payload     json.RawMessage
+	Payload     []byte
 }
 
-func NewOutboxMessage(payload OutboxPayload) (OutboxMessage, error) {
-	encoded, err := json.Marshal(payload)
+func NewOutboxMessage(topic Topic, orderingKey string, payload proto.Message) (OutboxMessage, error) {
+	encoded, err := proto.Marshal(payload)
 	if err != nil {
-		return OutboxMessage{}, fmt.Errorf("encode %s payload: %w", payload.Topic(), err)
+		return OutboxMessage{}, fmt.Errorf("encode %s payload: %w", topic, err)
 	}
 
-	return OutboxMessage{Topic: payload.Topic(), OrderingKey: payload.OrderingKey(), Payload: encoded}, nil
+	return OutboxMessage{Topic: topic, OrderingKey: orderingKey, Payload: encoded}, nil
 }
 
 type OutboxStatus string
@@ -64,46 +62,30 @@ func (e OutboxEntry) PublishFailed(maxAttempts int) OutboxEntry {
 	return e
 }
 
-type GuestMessagesUpdate struct {
-	EventID           string         `json:"event_id"`
-	Upserts           []GuestMessage `json:"upserts,omitempty"`
-	RevokedMessageIDs []string       `json:"revoked_message_ids,omitempty"`
-}
-
-type GuestMessage struct {
-	MessageID string    `json:"message_id"`
-	Body      string    `json:"body"`
-	SentAt    time.Time `json:"sent_at"`
-}
-
-func (GuestMessagesUpdate) Topic() Topic { return TopicGuestMessages }
-
-func (u GuestMessagesUpdate) OrderingKey() string { return u.EventID }
-
 func (a Audience) IncludesGuests() bool {
 	return a == AudienceGuest || a == AudienceBoth
 }
 
-func GuestUpsert(message StaffMessage) *GuestMessagesUpdate {
+func GuestUpsert(message StaffMessage) *operationv1.GuestMessagesUpdate {
 	if !message.Audience.IncludesGuests() {
 		return nil
 	}
 
-	return &GuestMessagesUpdate{
-		EventID: message.EventID,
-		Upserts: []GuestMessage{{
-			MessageID: string(message.ID),
+	return &operationv1.GuestMessagesUpdate{
+		EventId: message.EventID,
+		Upserts: []*operationv1.GuestMessage{{
+			MessageId: string(message.ID),
 			Body:      message.Body,
-			SentAt:    message.SentAt.UTC(),
+			SentAt:    timestamppb.New(message.SentAt.UTC()),
 		}},
-		RevokedMessageIDs: nil,
+		RevokedMessageIds: nil,
 	}
 }
 
-func GuestRevocation(eventID string, id MessageID, audience Audience) *GuestMessagesUpdate {
+func GuestRevocation(eventID string, id MessageID, audience Audience) *operationv1.GuestMessagesUpdate {
 	if !audience.IncludesGuests() {
 		return nil
 	}
 
-	return &GuestMessagesUpdate{EventID: eventID, Upserts: nil, RevokedMessageIDs: []string{string(id)}}
+	return &operationv1.GuestMessagesUpdate{EventId: eventID, Upserts: nil, RevokedMessageIds: []string{string(id)}}
 }

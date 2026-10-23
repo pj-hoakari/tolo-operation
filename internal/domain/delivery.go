@@ -1,13 +1,14 @@
 package domain
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"maps"
 	"slices"
 
 	"github.com/google/uuid"
+
+	operationv1 "github.com/pj-hoakari/tolo-operation/gen/tolo/operation/v1"
 )
 
 var ErrProposalRequired = errors.New("proposal payload is required")
@@ -37,31 +38,19 @@ var proposalPushTitles = map[ProposalKind]string{
 
 type Proposal struct {
 	Kind    ProposalKind
-	Content json.RawMessage
+	Payload *operationv1.DeliveryPayload
 }
 
-func NewProposal(kind ProposalKind, content json.RawMessage) (Proposal, error) {
-	if _, ok := proposalPushTitles[kind]; !ok || len(content) == 0 {
+func NewProposal(payload *operationv1.DeliveryPayload) (Proposal, error) {
+	switch {
+	case payload.GetFlowProposals() != nil:
+		return Proposal{Kind: ProposalFlowProposals, Payload: payload}, nil
+	case payload.GetLineGuidance() != nil:
+		return Proposal{Kind: ProposalLineGuidance, Payload: payload}, nil
+	default:
 		return Proposal{}, ErrProposalRequired
 	}
-
-	return Proposal{Kind: kind, Content: content}, nil
 }
-
-func (p Proposal) MarshalJSON() ([]byte, error) {
-	return json.Marshal(map[ProposalKind]json.RawMessage{p.Kind: p.Content})
-}
-
-type DeliveryOrder struct {
-	DeliveryID       DeliveryID `json:"delivery_id"`
-	EventID          string     `json:"event_id"`
-	RecipientUserIDs []string   `json:"recipient_user_ids"`
-	Payload          Proposal   `json:"payload"`
-}
-
-func (DeliveryOrder) Topic() Topic { return TopicRealtimeDelivery }
-
-func (o DeliveryOrder) OrderingKey() string { return o.EventID }
 
 type PushMessage struct {
 	Title string

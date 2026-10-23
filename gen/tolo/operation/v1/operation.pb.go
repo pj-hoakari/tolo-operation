@@ -1580,6 +1580,292 @@ func (*RecordFeedbackValuesResponse) Descriptor() ([]byte, []int) {
 	return file_tolo_operation_v1_operation_proto_rawDescGZIP(), []int{15}
 }
 
+type DeliveryOrder struct {
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	DeliveryId       string                 `protobuf:"bytes,1,opt,name=delivery_id,json=deliveryId,proto3" json:"delivery_id,omitempty"`
+	EventId          string                 `protobuf:"bytes,2,opt,name=event_id,json=eventId,proto3" json:"event_id,omitempty"`
+	RecipientUserIds []string               `protobuf:"bytes,3,rep,name=recipient_user_ids,json=recipientUserIds,proto3" json:"recipient_user_ids,omitempty"`
+	Payload          *DeliveryPayload       `protobuf:"bytes,4,opt,name=payload,proto3" json:"payload,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *DeliveryOrder) Reset() {
+	*x = DeliveryOrder{}
+	mi := &file_tolo_operation_v1_operation_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeliveryOrder) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeliveryOrder) ProtoMessage() {}
+
+func (x *DeliveryOrder) ProtoReflect() protoreflect.Message {
+	mi := &file_tolo_operation_v1_operation_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeliveryOrder.ProtoReflect.Descriptor instead.
+func (*DeliveryOrder) Descriptor() ([]byte, []int) {
+	return file_tolo_operation_v1_operation_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *DeliveryOrder) GetDeliveryId() string {
+	if x != nil {
+		return x.DeliveryId
+	}
+	return ""
+}
+
+func (x *DeliveryOrder) GetEventId() string {
+	if x != nil {
+		return x.EventId
+	}
+	return ""
+}
+
+func (x *DeliveryOrder) GetRecipientUserIds() []string {
+	if x != nil {
+		return x.RecipientUserIds
+	}
+	return nil
+}
+
+func (x *DeliveryOrder) GetPayload() *DeliveryPayload {
+	if x != nil {
+		return x.Payload
+	}
+	return nil
+}
+
+type DeliveryPayload struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Types that are valid to be assigned to Kind:
+	//
+	//	*DeliveryPayload_FlowProposals
+	//	*DeliveryPayload_LineGuidance
+	//	*DeliveryPayload_StaffMessage
+	Kind          isDeliveryPayload_Kind `protobuf_oneof:"kind"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeliveryPayload) Reset() {
+	*x = DeliveryPayload{}
+	mi := &file_tolo_operation_v1_operation_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeliveryPayload) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeliveryPayload) ProtoMessage() {}
+
+func (x *DeliveryPayload) ProtoReflect() protoreflect.Message {
+	mi := &file_tolo_operation_v1_operation_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeliveryPayload.ProtoReflect.Descriptor instead.
+func (*DeliveryPayload) Descriptor() ([]byte, []int) {
+	return file_tolo_operation_v1_operation_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *DeliveryPayload) GetKind() isDeliveryPayload_Kind {
+	if x != nil {
+		return x.Kind
+	}
+	return nil
+}
+
+func (x *DeliveryPayload) GetFlowProposals() *FlowProposals {
+	if x != nil {
+		if x, ok := x.Kind.(*DeliveryPayload_FlowProposals); ok {
+			return x.FlowProposals
+		}
+	}
+	return nil
+}
+
+func (x *DeliveryPayload) GetLineGuidance() *LineGuidance {
+	if x != nil {
+		if x, ok := x.Kind.(*DeliveryPayload_LineGuidance); ok {
+			return x.LineGuidance
+		}
+	}
+	return nil
+}
+
+func (x *DeliveryPayload) GetStaffMessage() *StaffMessage {
+	if x != nil {
+		if x, ok := x.Kind.(*DeliveryPayload_StaffMessage); ok {
+			return x.StaffMessage
+		}
+	}
+	return nil
+}
+
+type isDeliveryPayload_Kind interface {
+	isDeliveryPayload_Kind()
+}
+
+type DeliveryPayload_FlowProposals struct {
+	FlowProposals *FlowProposals `protobuf:"bytes,1,opt,name=flow_proposals,json=flowProposals,proto3,oneof"`
+}
+
+type DeliveryPayload_LineGuidance struct {
+	LineGuidance *LineGuidance `protobuf:"bytes,2,opt,name=line_guidance,json=lineGuidance,proto3,oneof"`
+}
+
+type DeliveryPayload_StaffMessage struct {
+	StaffMessage *StaffMessage `protobuf:"bytes,3,opt,name=staff_message,json=staffMessage,proto3,oneof"`
+}
+
+func (*DeliveryPayload_FlowProposals) isDeliveryPayload_Kind() {}
+
+func (*DeliveryPayload_LineGuidance) isDeliveryPayload_Kind() {}
+
+func (*DeliveryPayload_StaffMessage) isDeliveryPayload_Kind() {}
+
+type GuestMessagesUpdate struct {
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	EventId           string                 `protobuf:"bytes,1,opt,name=event_id,json=eventId,proto3" json:"event_id,omitempty"`
+	Upserts           []*GuestMessage        `protobuf:"bytes,2,rep,name=upserts,proto3" json:"upserts,omitempty"`
+	RevokedMessageIds []string               `protobuf:"bytes,3,rep,name=revoked_message_ids,json=revokedMessageIds,proto3" json:"revoked_message_ids,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *GuestMessagesUpdate) Reset() {
+	*x = GuestMessagesUpdate{}
+	mi := &file_tolo_operation_v1_operation_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GuestMessagesUpdate) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GuestMessagesUpdate) ProtoMessage() {}
+
+func (x *GuestMessagesUpdate) ProtoReflect() protoreflect.Message {
+	mi := &file_tolo_operation_v1_operation_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GuestMessagesUpdate.ProtoReflect.Descriptor instead.
+func (*GuestMessagesUpdate) Descriptor() ([]byte, []int) {
+	return file_tolo_operation_v1_operation_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *GuestMessagesUpdate) GetEventId() string {
+	if x != nil {
+		return x.EventId
+	}
+	return ""
+}
+
+func (x *GuestMessagesUpdate) GetUpserts() []*GuestMessage {
+	if x != nil {
+		return x.Upserts
+	}
+	return nil
+}
+
+func (x *GuestMessagesUpdate) GetRevokedMessageIds() []string {
+	if x != nil {
+		return x.RevokedMessageIds
+	}
+	return nil
+}
+
+type GuestMessage struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	MessageId     string                 `protobuf:"bytes,1,opt,name=message_id,json=messageId,proto3" json:"message_id,omitempty"`
+	Body          string                 `protobuf:"bytes,2,opt,name=body,proto3" json:"body,omitempty"`
+	SentAt        *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=sent_at,json=sentAt,proto3" json:"sent_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GuestMessage) Reset() {
+	*x = GuestMessage{}
+	mi := &file_tolo_operation_v1_operation_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GuestMessage) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GuestMessage) ProtoMessage() {}
+
+func (x *GuestMessage) ProtoReflect() protoreflect.Message {
+	mi := &file_tolo_operation_v1_operation_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GuestMessage.ProtoReflect.Descriptor instead.
+func (*GuestMessage) Descriptor() ([]byte, []int) {
+	return file_tolo_operation_v1_operation_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *GuestMessage) GetMessageId() string {
+	if x != nil {
+		return x.MessageId
+	}
+	return ""
+}
+
+func (x *GuestMessage) GetBody() string {
+	if x != nil {
+		return x.Body
+	}
+	return ""
+}
+
+func (x *GuestMessage) GetSentAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.SentAt
+	}
+	return nil
+}
+
 type FlowProposals struct {
 	state                protoimpl.MessageState     `protogen:"open.v1"`
 	RouteImportances     []*RouteImportance         `protobuf:"bytes,1,rep,name=route_importances,json=routeImportances,proto3" json:"route_importances,omitempty"`
@@ -1594,7 +1880,7 @@ type FlowProposals struct {
 
 func (x *FlowProposals) Reset() {
 	*x = FlowProposals{}
-	mi := &file_tolo_operation_v1_operation_proto_msgTypes[16]
+	mi := &file_tolo_operation_v1_operation_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1606,7 +1892,7 @@ func (x *FlowProposals) String() string {
 func (*FlowProposals) ProtoMessage() {}
 
 func (x *FlowProposals) ProtoReflect() protoreflect.Message {
-	mi := &file_tolo_operation_v1_operation_proto_msgTypes[16]
+	mi := &file_tolo_operation_v1_operation_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1619,7 +1905,7 @@ func (x *FlowProposals) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FlowProposals.ProtoReflect.Descriptor instead.
 func (*FlowProposals) Descriptor() ([]byte, []int) {
-	return file_tolo_operation_v1_operation_proto_rawDescGZIP(), []int{16}
+	return file_tolo_operation_v1_operation_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *FlowProposals) GetRouteImportances() []*RouteImportance {
@@ -1675,7 +1961,7 @@ type RouteImportance struct {
 
 func (x *RouteImportance) Reset() {
 	*x = RouteImportance{}
-	mi := &file_tolo_operation_v1_operation_proto_msgTypes[17]
+	mi := &file_tolo_operation_v1_operation_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1687,7 +1973,7 @@ func (x *RouteImportance) String() string {
 func (*RouteImportance) ProtoMessage() {}
 
 func (x *RouteImportance) ProtoReflect() protoreflect.Message {
-	mi := &file_tolo_operation_v1_operation_proto_msgTypes[17]
+	mi := &file_tolo_operation_v1_operation_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1700,7 +1986,7 @@ func (x *RouteImportance) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RouteImportance.ProtoReflect.Descriptor instead.
 func (*RouteImportance) Descriptor() ([]byte, []int) {
-	return file_tolo_operation_v1_operation_proto_rawDescGZIP(), []int{17}
+	return file_tolo_operation_v1_operation_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *RouteImportance) GetRouteId() string {
@@ -1736,7 +2022,7 @@ type DirectionProposal struct {
 
 func (x *DirectionProposal) Reset() {
 	*x = DirectionProposal{}
-	mi := &file_tolo_operation_v1_operation_proto_msgTypes[18]
+	mi := &file_tolo_operation_v1_operation_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1748,7 +2034,7 @@ func (x *DirectionProposal) String() string {
 func (*DirectionProposal) ProtoMessage() {}
 
 func (x *DirectionProposal) ProtoReflect() protoreflect.Message {
-	mi := &file_tolo_operation_v1_operation_proto_msgTypes[18]
+	mi := &file_tolo_operation_v1_operation_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1761,7 +2047,7 @@ func (x *DirectionProposal) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DirectionProposal.ProtoReflect.Descriptor instead.
 func (*DirectionProposal) Descriptor() ([]byte, []int) {
-	return file_tolo_operation_v1_operation_proto_rawDescGZIP(), []int{18}
+	return file_tolo_operation_v1_operation_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *DirectionProposal) GetRouteId() string {
@@ -1805,7 +2091,7 @@ type RestrictionProposal struct {
 
 func (x *RestrictionProposal) Reset() {
 	*x = RestrictionProposal{}
-	mi := &file_tolo_operation_v1_operation_proto_msgTypes[19]
+	mi := &file_tolo_operation_v1_operation_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1817,7 +2103,7 @@ func (x *RestrictionProposal) String() string {
 func (*RestrictionProposal) ProtoMessage() {}
 
 func (x *RestrictionProposal) ProtoReflect() protoreflect.Message {
-	mi := &file_tolo_operation_v1_operation_proto_msgTypes[19]
+	mi := &file_tolo_operation_v1_operation_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1830,7 +2116,7 @@ func (x *RestrictionProposal) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RestrictionProposal.ProtoReflect.Descriptor instead.
 func (*RestrictionProposal) Descriptor() ([]byte, []int) {
-	return file_tolo_operation_v1_operation_proto_rawDescGZIP(), []int{19}
+	return file_tolo_operation_v1_operation_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *RestrictionProposal) GetRouteId() string {
@@ -1879,7 +2165,7 @@ type DetourProposal struct {
 
 func (x *DetourProposal) Reset() {
 	*x = DetourProposal{}
-	mi := &file_tolo_operation_v1_operation_proto_msgTypes[20]
+	mi := &file_tolo_operation_v1_operation_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1891,7 +2177,7 @@ func (x *DetourProposal) String() string {
 func (*DetourProposal) ProtoMessage() {}
 
 func (x *DetourProposal) ProtoReflect() protoreflect.Message {
-	mi := &file_tolo_operation_v1_operation_proto_msgTypes[20]
+	mi := &file_tolo_operation_v1_operation_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1904,7 +2190,7 @@ func (x *DetourProposal) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DetourProposal.ProtoReflect.Descriptor instead.
 func (*DetourProposal) Descriptor() ([]byte, []int) {
-	return file_tolo_operation_v1_operation_proto_rawDescGZIP(), []int{20}
+	return file_tolo_operation_v1_operation_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *DetourProposal) GetOriginRouteId() string {
@@ -1938,7 +2224,7 @@ type BoundaryControlProposal struct {
 
 func (x *BoundaryControlProposal) Reset() {
 	*x = BoundaryControlProposal{}
-	mi := &file_tolo_operation_v1_operation_proto_msgTypes[21]
+	mi := &file_tolo_operation_v1_operation_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1950,7 +2236,7 @@ func (x *BoundaryControlProposal) String() string {
 func (*BoundaryControlProposal) ProtoMessage() {}
 
 func (x *BoundaryControlProposal) ProtoReflect() protoreflect.Message {
-	mi := &file_tolo_operation_v1_operation_proto_msgTypes[21]
+	mi := &file_tolo_operation_v1_operation_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1963,7 +2249,7 @@ func (x *BoundaryControlProposal) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BoundaryControlProposal.ProtoReflect.Descriptor instead.
 func (*BoundaryControlProposal) Descriptor() ([]byte, []int) {
-	return file_tolo_operation_v1_operation_proto_rawDescGZIP(), []int{21}
+	return file_tolo_operation_v1_operation_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *BoundaryControlProposal) GetPointId() string {
@@ -1993,7 +2279,7 @@ type LineGuidance struct {
 
 func (x *LineGuidance) Reset() {
 	*x = LineGuidance{}
-	mi := &file_tolo_operation_v1_operation_proto_msgTypes[22]
+	mi := &file_tolo_operation_v1_operation_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2005,7 +2291,7 @@ func (x *LineGuidance) String() string {
 func (*LineGuidance) ProtoMessage() {}
 
 func (x *LineGuidance) ProtoReflect() protoreflect.Message {
-	mi := &file_tolo_operation_v1_operation_proto_msgTypes[22]
+	mi := &file_tolo_operation_v1_operation_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2018,7 +2304,7 @@ func (x *LineGuidance) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LineGuidance.ProtoReflect.Descriptor instead.
 func (*LineGuidance) Descriptor() ([]byte, []int) {
-	return file_tolo_operation_v1_operation_proto_rawDescGZIP(), []int{22}
+	return file_tolo_operation_v1_operation_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *LineGuidance) GetQueues() []*QueueSummary {
@@ -2071,7 +2357,7 @@ type QueueSummary struct {
 
 func (x *QueueSummary) Reset() {
 	*x = QueueSummary{}
-	mi := &file_tolo_operation_v1_operation_proto_msgTypes[23]
+	mi := &file_tolo_operation_v1_operation_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2083,7 +2369,7 @@ func (x *QueueSummary) String() string {
 func (*QueueSummary) ProtoMessage() {}
 
 func (x *QueueSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_tolo_operation_v1_operation_proto_msgTypes[23]
+	mi := &file_tolo_operation_v1_operation_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2096,7 +2382,7 @@ func (x *QueueSummary) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use QueueSummary.ProtoReflect.Descriptor instead.
 func (*QueueSummary) Descriptor() ([]byte, []int) {
-	return file_tolo_operation_v1_operation_proto_rawDescGZIP(), []int{23}
+	return file_tolo_operation_v1_operation_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *QueueSummary) GetQueueId() string {
@@ -2158,7 +2444,7 @@ type QueueChange struct {
 
 func (x *QueueChange) Reset() {
 	*x = QueueChange{}
-	mi := &file_tolo_operation_v1_operation_proto_msgTypes[24]
+	mi := &file_tolo_operation_v1_operation_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2170,7 +2456,7 @@ func (x *QueueChange) String() string {
 func (*QueueChange) ProtoMessage() {}
 
 func (x *QueueChange) ProtoReflect() protoreflect.Message {
-	mi := &file_tolo_operation_v1_operation_proto_msgTypes[24]
+	mi := &file_tolo_operation_v1_operation_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2183,7 +2469,7 @@ func (x *QueueChange) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use QueueChange.ProtoReflect.Descriptor instead.
 func (*QueueChange) Descriptor() ([]byte, []int) {
-	return file_tolo_operation_v1_operation_proto_rawDescGZIP(), []int{24}
+	return file_tolo_operation_v1_operation_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *QueueChange) GetQueueId() string {
@@ -2211,7 +2497,7 @@ type GateRecommendation struct {
 
 func (x *GateRecommendation) Reset() {
 	*x = GateRecommendation{}
-	mi := &file_tolo_operation_v1_operation_proto_msgTypes[25]
+	mi := &file_tolo_operation_v1_operation_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2223,7 +2509,7 @@ func (x *GateRecommendation) String() string {
 func (*GateRecommendation) ProtoMessage() {}
 
 func (x *GateRecommendation) ProtoReflect() protoreflect.Message {
-	mi := &file_tolo_operation_v1_operation_proto_msgTypes[25]
+	mi := &file_tolo_operation_v1_operation_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2236,7 +2522,7 @@ func (x *GateRecommendation) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GateRecommendation.ProtoReflect.Descriptor instead.
 func (*GateRecommendation) Descriptor() ([]byte, []int) {
-	return file_tolo_operation_v1_operation_proto_rawDescGZIP(), []int{25}
+	return file_tolo_operation_v1_operation_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *GateRecommendation) GetGatePointId() string {
@@ -2270,7 +2556,7 @@ type GateAvailability struct {
 
 func (x *GateAvailability) Reset() {
 	*x = GateAvailability{}
-	mi := &file_tolo_operation_v1_operation_proto_msgTypes[26]
+	mi := &file_tolo_operation_v1_operation_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2282,7 +2568,7 @@ func (x *GateAvailability) String() string {
 func (*GateAvailability) ProtoMessage() {}
 
 func (x *GateAvailability) ProtoReflect() protoreflect.Message {
-	mi := &file_tolo_operation_v1_operation_proto_msgTypes[26]
+	mi := &file_tolo_operation_v1_operation_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2295,7 +2581,7 @@ func (x *GateAvailability) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GateAvailability.ProtoReflect.Descriptor instead.
 func (*GateAvailability) Descriptor() ([]byte, []int) {
-	return file_tolo_operation_v1_operation_proto_rawDescGZIP(), []int{26}
+	return file_tolo_operation_v1_operation_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *GateAvailability) GetGatePointId() string {
@@ -2323,7 +2609,7 @@ type QueueShapeProposal struct {
 
 func (x *QueueShapeProposal) Reset() {
 	*x = QueueShapeProposal{}
-	mi := &file_tolo_operation_v1_operation_proto_msgTypes[27]
+	mi := &file_tolo_operation_v1_operation_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2335,7 +2621,7 @@ func (x *QueueShapeProposal) String() string {
 func (*QueueShapeProposal) ProtoMessage() {}
 
 func (x *QueueShapeProposal) ProtoReflect() protoreflect.Message {
-	mi := &file_tolo_operation_v1_operation_proto_msgTypes[27]
+	mi := &file_tolo_operation_v1_operation_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2348,7 +2634,7 @@ func (x *QueueShapeProposal) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use QueueShapeProposal.ProtoReflect.Descriptor instead.
 func (*QueueShapeProposal) Descriptor() ([]byte, []int) {
-	return file_tolo_operation_v1_operation_proto_rawDescGZIP(), []int{27}
+	return file_tolo_operation_v1_operation_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *QueueShapeProposal) GetQueueId() string {
@@ -2382,7 +2668,7 @@ type LaneChange struct {
 
 func (x *LaneChange) Reset() {
 	*x = LaneChange{}
-	mi := &file_tolo_operation_v1_operation_proto_msgTypes[28]
+	mi := &file_tolo_operation_v1_operation_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2394,7 +2680,7 @@ func (x *LaneChange) String() string {
 func (*LaneChange) ProtoMessage() {}
 
 func (x *LaneChange) ProtoReflect() protoreflect.Message {
-	mi := &file_tolo_operation_v1_operation_proto_msgTypes[28]
+	mi := &file_tolo_operation_v1_operation_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2407,7 +2693,7 @@ func (x *LaneChange) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LaneChange.ProtoReflect.Descriptor instead.
 func (*LaneChange) Descriptor() ([]byte, []int) {
-	return file_tolo_operation_v1_operation_proto_rawDescGZIP(), []int{28}
+	return file_tolo_operation_v1_operation_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *LaneChange) GetAction() LaneAction {
@@ -2434,7 +2720,7 @@ type FeedbackValues struct {
 
 func (x *FeedbackValues) Reset() {
 	*x = FeedbackValues{}
-	mi := &file_tolo_operation_v1_operation_proto_msgTypes[29]
+	mi := &file_tolo_operation_v1_operation_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2446,7 +2732,7 @@ func (x *FeedbackValues) String() string {
 func (*FeedbackValues) ProtoMessage() {}
 
 func (x *FeedbackValues) ProtoReflect() protoreflect.Message {
-	mi := &file_tolo_operation_v1_operation_proto_msgTypes[29]
+	mi := &file_tolo_operation_v1_operation_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2459,7 +2745,7 @@ func (x *FeedbackValues) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FeedbackValues.ProtoReflect.Descriptor instead.
 func (*FeedbackValues) Descriptor() ([]byte, []int) {
-	return file_tolo_operation_v1_operation_proto_rawDescGZIP(), []int{29}
+	return file_tolo_operation_v1_operation_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *FeedbackValues) GetEntries() []*FeedbackEntry {
@@ -2487,7 +2773,7 @@ type FeedbackEntry struct {
 
 func (x *FeedbackEntry) Reset() {
 	*x = FeedbackEntry{}
-	mi := &file_tolo_operation_v1_operation_proto_msgTypes[30]
+	mi := &file_tolo_operation_v1_operation_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2499,7 +2785,7 @@ func (x *FeedbackEntry) String() string {
 func (*FeedbackEntry) ProtoMessage() {}
 
 func (x *FeedbackEntry) ProtoReflect() protoreflect.Message {
-	mi := &file_tolo_operation_v1_operation_proto_msgTypes[30]
+	mi := &file_tolo_operation_v1_operation_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2512,7 +2798,7 @@ func (x *FeedbackEntry) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FeedbackEntry.ProtoReflect.Descriptor instead.
 func (*FeedbackEntry) Descriptor() ([]byte, []int) {
-	return file_tolo_operation_v1_operation_proto_rawDescGZIP(), []int{30}
+	return file_tolo_operation_v1_operation_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *FeedbackEntry) GetAttributeTag() string {
@@ -2550,7 +2836,7 @@ type UpdateConnectionStateRequest struct {
 
 func (x *UpdateConnectionStateRequest) Reset() {
 	*x = UpdateConnectionStateRequest{}
-	mi := &file_tolo_operation_v1_operation_proto_msgTypes[31]
+	mi := &file_tolo_operation_v1_operation_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2562,7 +2848,7 @@ func (x *UpdateConnectionStateRequest) String() string {
 func (*UpdateConnectionStateRequest) ProtoMessage() {}
 
 func (x *UpdateConnectionStateRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tolo_operation_v1_operation_proto_msgTypes[31]
+	mi := &file_tolo_operation_v1_operation_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2575,7 +2861,7 @@ func (x *UpdateConnectionStateRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateConnectionStateRequest.ProtoReflect.Descriptor instead.
 func (*UpdateConnectionStateRequest) Descriptor() ([]byte, []int) {
-	return file_tolo_operation_v1_operation_proto_rawDescGZIP(), []int{31}
+	return file_tolo_operation_v1_operation_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *UpdateConnectionStateRequest) GetUserId() string {
@@ -2628,7 +2914,7 @@ type UpdateConnectionStateResponse struct {
 
 func (x *UpdateConnectionStateResponse) Reset() {
 	*x = UpdateConnectionStateResponse{}
-	mi := &file_tolo_operation_v1_operation_proto_msgTypes[32]
+	mi := &file_tolo_operation_v1_operation_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2640,7 +2926,7 @@ func (x *UpdateConnectionStateResponse) String() string {
 func (*UpdateConnectionStateResponse) ProtoMessage() {}
 
 func (x *UpdateConnectionStateResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tolo_operation_v1_operation_proto_msgTypes[32]
+	mi := &file_tolo_operation_v1_operation_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2653,7 +2939,7 @@ func (x *UpdateConnectionStateResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateConnectionStateResponse.ProtoReflect.Descriptor instead.
 func (*UpdateConnectionStateResponse) Descriptor() ([]byte, []int) {
-	return file_tolo_operation_v1_operation_proto_rawDescGZIP(), []int{32}
+	return file_tolo_operation_v1_operation_proto_rawDescGZIP(), []int{36}
 }
 
 type GetHistoryDigestRequest struct {
@@ -2668,7 +2954,7 @@ type GetHistoryDigestRequest struct {
 
 func (x *GetHistoryDigestRequest) Reset() {
 	*x = GetHistoryDigestRequest{}
-	mi := &file_tolo_operation_v1_operation_proto_msgTypes[33]
+	mi := &file_tolo_operation_v1_operation_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2680,7 +2966,7 @@ func (x *GetHistoryDigestRequest) String() string {
 func (*GetHistoryDigestRequest) ProtoMessage() {}
 
 func (x *GetHistoryDigestRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tolo_operation_v1_operation_proto_msgTypes[33]
+	mi := &file_tolo_operation_v1_operation_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2693,7 +2979,7 @@ func (x *GetHistoryDigestRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetHistoryDigestRequest.ProtoReflect.Descriptor instead.
 func (*GetHistoryDigestRequest) Descriptor() ([]byte, []int) {
-	return file_tolo_operation_v1_operation_proto_rawDescGZIP(), []int{33}
+	return file_tolo_operation_v1_operation_proto_rawDescGZIP(), []int{37}
 }
 
 func (x *GetHistoryDigestRequest) GetEventId() string {
@@ -2736,7 +3022,7 @@ type HistoryDigest struct {
 
 func (x *HistoryDigest) Reset() {
 	*x = HistoryDigest{}
-	mi := &file_tolo_operation_v1_operation_proto_msgTypes[34]
+	mi := &file_tolo_operation_v1_operation_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2748,7 +3034,7 @@ func (x *HistoryDigest) String() string {
 func (*HistoryDigest) ProtoMessage() {}
 
 func (x *HistoryDigest) ProtoReflect() protoreflect.Message {
-	mi := &file_tolo_operation_v1_operation_proto_msgTypes[34]
+	mi := &file_tolo_operation_v1_operation_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2761,7 +3047,7 @@ func (x *HistoryDigest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HistoryDigest.ProtoReflect.Descriptor instead.
 func (*HistoryDigest) Descriptor() ([]byte, []int) {
-	return file_tolo_operation_v1_operation_proto_rawDescGZIP(), []int{34}
+	return file_tolo_operation_v1_operation_proto_rawDescGZIP(), []int{38}
 }
 
 func (x *HistoryDigest) GetEventId() string {
@@ -2808,7 +3094,7 @@ type DigestEntry struct {
 
 func (x *DigestEntry) Reset() {
 	*x = DigestEntry{}
-	mi := &file_tolo_operation_v1_operation_proto_msgTypes[35]
+	mi := &file_tolo_operation_v1_operation_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2820,7 +3106,7 @@ func (x *DigestEntry) String() string {
 func (*DigestEntry) ProtoMessage() {}
 
 func (x *DigestEntry) ProtoReflect() protoreflect.Message {
-	mi := &file_tolo_operation_v1_operation_proto_msgTypes[35]
+	mi := &file_tolo_operation_v1_operation_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2833,7 +3119,7 @@ func (x *DigestEntry) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DigestEntry.ProtoReflect.Descriptor instead.
 func (*DigestEntry) Descriptor() ([]byte, []int) {
-	return file_tolo_operation_v1_operation_proto_rawDescGZIP(), []int{35}
+	return file_tolo_operation_v1_operation_proto_rawDescGZIP(), []int{39}
 }
 
 func (x *DigestEntry) GetKind() string {
@@ -2982,7 +3268,27 @@ const file_tolo_operation_v1_operation_proto_rawDesc = "" +
 	"\bevent_id\x18\x01 \x01(\tR\aeventId\x129\n" +
 	"\x06values\x18\x02 \x01(\v2!.tolo.operation.v1.FeedbackValuesR\x06values\x12\x1b\n" +
 	"\ttenant_id\x18\x03 \x01(\tR\btenantId\"\x1e\n" +
-	"\x1cRecordFeedbackValuesResponse\"\xf4\x03\n" +
+	"\x1cRecordFeedbackValuesResponse\"\xb7\x01\n" +
+	"\rDeliveryOrder\x12\x1f\n" +
+	"\vdelivery_id\x18\x01 \x01(\tR\n" +
+	"deliveryId\x12\x19\n" +
+	"\bevent_id\x18\x02 \x01(\tR\aeventId\x12,\n" +
+	"\x12recipient_user_ids\x18\x03 \x03(\tR\x10recipientUserIds\x12<\n" +
+	"\apayload\x18\x04 \x01(\v2\".tolo.operation.v1.DeliveryPayloadR\apayload\"\xf4\x01\n" +
+	"\x0fDeliveryPayload\x12I\n" +
+	"\x0eflow_proposals\x18\x01 \x01(\v2 .tolo.operation.v1.FlowProposalsH\x00R\rflowProposals\x12F\n" +
+	"\rline_guidance\x18\x02 \x01(\v2\x1f.tolo.operation.v1.LineGuidanceH\x00R\flineGuidance\x12F\n" +
+	"\rstaff_message\x18\x03 \x01(\v2\x1f.tolo.operation.v1.StaffMessageH\x00R\fstaffMessageB\x06\n" +
+	"\x04kind\"\x9b\x01\n" +
+	"\x13GuestMessagesUpdate\x12\x19\n" +
+	"\bevent_id\x18\x01 \x01(\tR\aeventId\x129\n" +
+	"\aupserts\x18\x02 \x03(\v2\x1f.tolo.operation.v1.GuestMessageR\aupserts\x12.\n" +
+	"\x13revoked_message_ids\x18\x03 \x03(\tR\x11revokedMessageIds\"v\n" +
+	"\fGuestMessage\x12\x1d\n" +
+	"\n" +
+	"message_id\x18\x01 \x01(\tR\tmessageId\x12\x12\n" +
+	"\x04body\x18\x02 \x01(\tR\x04body\x123\n" +
+	"\asent_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\x06sentAt\"\xf4\x03\n" +
 	"\rFlowProposals\x12O\n" +
 	"\x11route_importances\x18\x01 \x03(\v2\".tolo.operation.v1.RouteImportanceR\x10routeImportances\x12U\n" +
 	"\x13direction_proposals\x18\x02 \x03(\v2$.tolo.operation.v1.DirectionProposalR\x12directionProposals\x12[\n" +
@@ -3169,7 +3475,7 @@ func file_tolo_operation_v1_operation_proto_rawDescGZIP() []byte {
 }
 
 var file_tolo_operation_v1_operation_proto_enumTypes = make([]protoimpl.EnumInfo, 9)
-var file_tolo_operation_v1_operation_proto_msgTypes = make([]protoimpl.MessageInfo, 36)
+var file_tolo_operation_v1_operation_proto_msgTypes = make([]protoimpl.MessageInfo, 40)
 var file_tolo_operation_v1_operation_proto_goTypes = []any{
 	(Audience)(0),                           // 0: tolo.operation.v1.Audience
 	(ReassignmentStatus)(0),                 // 1: tolo.operation.v1.ReassignmentStatus
@@ -3196,97 +3502,107 @@ var file_tolo_operation_v1_operation_proto_goTypes = []any{
 	(*RequestProposalDeliveryResponse)(nil), // 22: tolo.operation.v1.RequestProposalDeliveryResponse
 	(*RecordFeedbackValuesRequest)(nil),     // 23: tolo.operation.v1.RecordFeedbackValuesRequest
 	(*RecordFeedbackValuesResponse)(nil),    // 24: tolo.operation.v1.RecordFeedbackValuesResponse
-	(*FlowProposals)(nil),                   // 25: tolo.operation.v1.FlowProposals
-	(*RouteImportance)(nil),                 // 26: tolo.operation.v1.RouteImportance
-	(*DirectionProposal)(nil),               // 27: tolo.operation.v1.DirectionProposal
-	(*RestrictionProposal)(nil),             // 28: tolo.operation.v1.RestrictionProposal
-	(*DetourProposal)(nil),                  // 29: tolo.operation.v1.DetourProposal
-	(*BoundaryControlProposal)(nil),         // 30: tolo.operation.v1.BoundaryControlProposal
-	(*LineGuidance)(nil),                    // 31: tolo.operation.v1.LineGuidance
-	(*QueueSummary)(nil),                    // 32: tolo.operation.v1.QueueSummary
-	(*QueueChange)(nil),                     // 33: tolo.operation.v1.QueueChange
-	(*GateRecommendation)(nil),              // 34: tolo.operation.v1.GateRecommendation
-	(*GateAvailability)(nil),                // 35: tolo.operation.v1.GateAvailability
-	(*QueueShapeProposal)(nil),              // 36: tolo.operation.v1.QueueShapeProposal
-	(*LaneChange)(nil),                      // 37: tolo.operation.v1.LaneChange
-	(*FeedbackValues)(nil),                  // 38: tolo.operation.v1.FeedbackValues
-	(*FeedbackEntry)(nil),                   // 39: tolo.operation.v1.FeedbackEntry
-	(*UpdateConnectionStateRequest)(nil),    // 40: tolo.operation.v1.UpdateConnectionStateRequest
-	(*UpdateConnectionStateResponse)(nil),   // 41: tolo.operation.v1.UpdateConnectionStateResponse
-	(*GetHistoryDigestRequest)(nil),         // 42: tolo.operation.v1.GetHistoryDigestRequest
-	(*HistoryDigest)(nil),                   // 43: tolo.operation.v1.HistoryDigest
-	(*DigestEntry)(nil),                     // 44: tolo.operation.v1.DigestEntry
-	(*timestamppb.Timestamp)(nil),           // 45: google.protobuf.Timestamp
-	(*v1.GraphAnchor)(nil),                  // 46: tolo.kernel.v1.GraphAnchor
+	(*DeliveryOrder)(nil),                   // 25: tolo.operation.v1.DeliveryOrder
+	(*DeliveryPayload)(nil),                 // 26: tolo.operation.v1.DeliveryPayload
+	(*GuestMessagesUpdate)(nil),             // 27: tolo.operation.v1.GuestMessagesUpdate
+	(*GuestMessage)(nil),                    // 28: tolo.operation.v1.GuestMessage
+	(*FlowProposals)(nil),                   // 29: tolo.operation.v1.FlowProposals
+	(*RouteImportance)(nil),                 // 30: tolo.operation.v1.RouteImportance
+	(*DirectionProposal)(nil),               // 31: tolo.operation.v1.DirectionProposal
+	(*RestrictionProposal)(nil),             // 32: tolo.operation.v1.RestrictionProposal
+	(*DetourProposal)(nil),                  // 33: tolo.operation.v1.DetourProposal
+	(*BoundaryControlProposal)(nil),         // 34: tolo.operation.v1.BoundaryControlProposal
+	(*LineGuidance)(nil),                    // 35: tolo.operation.v1.LineGuidance
+	(*QueueSummary)(nil),                    // 36: tolo.operation.v1.QueueSummary
+	(*QueueChange)(nil),                     // 37: tolo.operation.v1.QueueChange
+	(*GateRecommendation)(nil),              // 38: tolo.operation.v1.GateRecommendation
+	(*GateAvailability)(nil),                // 39: tolo.operation.v1.GateAvailability
+	(*QueueShapeProposal)(nil),              // 40: tolo.operation.v1.QueueShapeProposal
+	(*LaneChange)(nil),                      // 41: tolo.operation.v1.LaneChange
+	(*FeedbackValues)(nil),                  // 42: tolo.operation.v1.FeedbackValues
+	(*FeedbackEntry)(nil),                   // 43: tolo.operation.v1.FeedbackEntry
+	(*UpdateConnectionStateRequest)(nil),    // 44: tolo.operation.v1.UpdateConnectionStateRequest
+	(*UpdateConnectionStateResponse)(nil),   // 45: tolo.operation.v1.UpdateConnectionStateResponse
+	(*GetHistoryDigestRequest)(nil),         // 46: tolo.operation.v1.GetHistoryDigestRequest
+	(*HistoryDigest)(nil),                   // 47: tolo.operation.v1.HistoryDigest
+	(*DigestEntry)(nil),                     // 48: tolo.operation.v1.DigestEntry
+	(*timestamppb.Timestamp)(nil),           // 49: google.protobuf.Timestamp
+	(*v1.GraphAnchor)(nil),                  // 50: tolo.kernel.v1.GraphAnchor
 }
 var file_tolo_operation_v1_operation_proto_depIdxs = []int32{
 	0,  // 0: tolo.operation.v1.StaffMessage.audience:type_name -> tolo.operation.v1.Audience
-	45, // 1: tolo.operation.v1.StaffMessage.sent_at:type_name -> google.protobuf.Timestamp
+	49, // 1: tolo.operation.v1.StaffMessage.sent_at:type_name -> google.protobuf.Timestamp
 	0,  // 2: tolo.operation.v1.SendStaffMessageRequest.audience:type_name -> tolo.operation.v1.Audience
 	0,  // 3: tolo.operation.v1.ListStaffMessagesRequest.audience:type_name -> tolo.operation.v1.Audience
 	9,  // 4: tolo.operation.v1.ListStaffMessagesResponse.messages:type_name -> tolo.operation.v1.StaffMessage
-	46, // 5: tolo.operation.v1.Reassignment.anchor:type_name -> tolo.kernel.v1.GraphAnchor
+	50, // 5: tolo.operation.v1.Reassignment.anchor:type_name -> tolo.kernel.v1.GraphAnchor
 	1,  // 6: tolo.operation.v1.Reassignment.status:type_name -> tolo.operation.v1.ReassignmentStatus
-	46, // 7: tolo.operation.v1.DirectReassignmentRequest.anchor:type_name -> tolo.kernel.v1.GraphAnchor
+	50, // 7: tolo.operation.v1.DirectReassignmentRequest.anchor:type_name -> tolo.kernel.v1.GraphAnchor
 	16, // 8: tolo.operation.v1.ListReassignmentsResponse.reassignments:type_name -> tolo.operation.v1.Reassignment
-	25, // 9: tolo.operation.v1.RequestProposalDeliveryRequest.flow_proposals:type_name -> tolo.operation.v1.FlowProposals
-	31, // 10: tolo.operation.v1.RequestProposalDeliveryRequest.line_guidance:type_name -> tolo.operation.v1.LineGuidance
-	38, // 11: tolo.operation.v1.RecordFeedbackValuesRequest.values:type_name -> tolo.operation.v1.FeedbackValues
-	26, // 12: tolo.operation.v1.FlowProposals.route_importances:type_name -> tolo.operation.v1.RouteImportance
-	27, // 13: tolo.operation.v1.FlowProposals.direction_proposals:type_name -> tolo.operation.v1.DirectionProposal
-	28, // 14: tolo.operation.v1.FlowProposals.restriction_proposals:type_name -> tolo.operation.v1.RestrictionProposal
-	29, // 15: tolo.operation.v1.FlowProposals.detour_proposals:type_name -> tolo.operation.v1.DetourProposal
-	30, // 16: tolo.operation.v1.FlowProposals.boundary_controls:type_name -> tolo.operation.v1.BoundaryControlProposal
-	45, // 17: tolo.operation.v1.FlowProposals.solved_at:type_name -> google.protobuf.Timestamp
-	2,  // 18: tolo.operation.v1.RouteImportance.direction:type_name -> tolo.operation.v1.RouteDirection
-	2,  // 19: tolo.operation.v1.DirectionProposal.proposed_direction:type_name -> tolo.operation.v1.RouteDirection
-	3,  // 20: tolo.operation.v1.DirectionProposal.change:type_name -> tolo.operation.v1.DirectionChange
-	4,  // 21: tolo.operation.v1.RestrictionProposal.action:type_name -> tolo.operation.v1.RestrictionAction
-	5,  // 22: tolo.operation.v1.RestrictionProposal.reason:type_name -> tolo.operation.v1.RestrictionReason
-	6,  // 23: tolo.operation.v1.BoundaryControlProposal.action:type_name -> tolo.operation.v1.BoundaryAction
-	32, // 24: tolo.operation.v1.LineGuidance.queues:type_name -> tolo.operation.v1.QueueSummary
-	33, // 25: tolo.operation.v1.LineGuidance.changes:type_name -> tolo.operation.v1.QueueChange
-	34, // 26: tolo.operation.v1.LineGuidance.recommendations:type_name -> tolo.operation.v1.GateRecommendation
-	35, // 27: tolo.operation.v1.LineGuidance.availability:type_name -> tolo.operation.v1.GateAvailability
-	36, // 28: tolo.operation.v1.LineGuidance.shape_proposals:type_name -> tolo.operation.v1.QueueShapeProposal
-	7,  // 29: tolo.operation.v1.QueueChange.kind:type_name -> tolo.operation.v1.QueueChangeKind
-	37, // 30: tolo.operation.v1.QueueShapeProposal.lane_changes:type_name -> tolo.operation.v1.LaneChange
-	8,  // 31: tolo.operation.v1.LaneChange.action:type_name -> tolo.operation.v1.LaneAction
-	39, // 32: tolo.operation.v1.FeedbackValues.entries:type_name -> tolo.operation.v1.FeedbackEntry
-	45, // 33: tolo.operation.v1.FeedbackValues.computed_at:type_name -> google.protobuf.Timestamp
-	45, // 34: tolo.operation.v1.UpdateConnectionStateRequest.at:type_name -> google.protobuf.Timestamp
-	45, // 35: tolo.operation.v1.GetHistoryDigestRequest.from:type_name -> google.protobuf.Timestamp
-	45, // 36: tolo.operation.v1.GetHistoryDigestRequest.to:type_name -> google.protobuf.Timestamp
-	45, // 37: tolo.operation.v1.HistoryDigest.from:type_name -> google.protobuf.Timestamp
-	45, // 38: tolo.operation.v1.HistoryDigest.to:type_name -> google.protobuf.Timestamp
-	44, // 39: tolo.operation.v1.HistoryDigest.entries:type_name -> tolo.operation.v1.DigestEntry
-	10, // 40: tolo.operation.v1.StaffCommunicationService.SendStaffMessage:input_type -> tolo.operation.v1.SendStaffMessageRequest
-	11, // 41: tolo.operation.v1.StaffCommunicationService.RevokeStaffMessage:input_type -> tolo.operation.v1.RevokeStaffMessageRequest
-	13, // 42: tolo.operation.v1.StaffCommunicationService.ShareGuidanceInfo:input_type -> tolo.operation.v1.ShareGuidanceInfoRequest
-	14, // 43: tolo.operation.v1.StaffCommunicationService.ListStaffMessages:input_type -> tolo.operation.v1.ListStaffMessagesRequest
-	17, // 44: tolo.operation.v1.OperationControlService.DirectReassignment:input_type -> tolo.operation.v1.DirectReassignmentRequest
-	18, // 45: tolo.operation.v1.OperationControlService.ApplyReassignment:input_type -> tolo.operation.v1.ApplyReassignmentRequest
-	19, // 46: tolo.operation.v1.OperationControlService.ListReassignments:input_type -> tolo.operation.v1.ListReassignmentsRequest
-	21, // 47: tolo.operation.v1.DeliveryCoordinationService.RequestProposalDelivery:input_type -> tolo.operation.v1.RequestProposalDeliveryRequest
-	23, // 48: tolo.operation.v1.DeliveryCoordinationService.RecordFeedbackValues:input_type -> tolo.operation.v1.RecordFeedbackValuesRequest
-	40, // 49: tolo.operation.v1.DeliveryCoordinationService.UpdateConnectionState:input_type -> tolo.operation.v1.UpdateConnectionStateRequest
-	42, // 50: tolo.operation.v1.DigestService.GetHistoryDigest:input_type -> tolo.operation.v1.GetHistoryDigestRequest
-	9,  // 51: tolo.operation.v1.StaffCommunicationService.SendStaffMessage:output_type -> tolo.operation.v1.StaffMessage
-	12, // 52: tolo.operation.v1.StaffCommunicationService.RevokeStaffMessage:output_type -> tolo.operation.v1.RevokeStaffMessageResponse
-	9,  // 53: tolo.operation.v1.StaffCommunicationService.ShareGuidanceInfo:output_type -> tolo.operation.v1.StaffMessage
-	15, // 54: tolo.operation.v1.StaffCommunicationService.ListStaffMessages:output_type -> tolo.operation.v1.ListStaffMessagesResponse
-	16, // 55: tolo.operation.v1.OperationControlService.DirectReassignment:output_type -> tolo.operation.v1.Reassignment
-	16, // 56: tolo.operation.v1.OperationControlService.ApplyReassignment:output_type -> tolo.operation.v1.Reassignment
-	20, // 57: tolo.operation.v1.OperationControlService.ListReassignments:output_type -> tolo.operation.v1.ListReassignmentsResponse
-	22, // 58: tolo.operation.v1.DeliveryCoordinationService.RequestProposalDelivery:output_type -> tolo.operation.v1.RequestProposalDeliveryResponse
-	24, // 59: tolo.operation.v1.DeliveryCoordinationService.RecordFeedbackValues:output_type -> tolo.operation.v1.RecordFeedbackValuesResponse
-	41, // 60: tolo.operation.v1.DeliveryCoordinationService.UpdateConnectionState:output_type -> tolo.operation.v1.UpdateConnectionStateResponse
-	43, // 61: tolo.operation.v1.DigestService.GetHistoryDigest:output_type -> tolo.operation.v1.HistoryDigest
-	51, // [51:62] is the sub-list for method output_type
-	40, // [40:51] is the sub-list for method input_type
-	40, // [40:40] is the sub-list for extension type_name
-	40, // [40:40] is the sub-list for extension extendee
-	0,  // [0:40] is the sub-list for field type_name
+	29, // 9: tolo.operation.v1.RequestProposalDeliveryRequest.flow_proposals:type_name -> tolo.operation.v1.FlowProposals
+	35, // 10: tolo.operation.v1.RequestProposalDeliveryRequest.line_guidance:type_name -> tolo.operation.v1.LineGuidance
+	42, // 11: tolo.operation.v1.RecordFeedbackValuesRequest.values:type_name -> tolo.operation.v1.FeedbackValues
+	26, // 12: tolo.operation.v1.DeliveryOrder.payload:type_name -> tolo.operation.v1.DeliveryPayload
+	29, // 13: tolo.operation.v1.DeliveryPayload.flow_proposals:type_name -> tolo.operation.v1.FlowProposals
+	35, // 14: tolo.operation.v1.DeliveryPayload.line_guidance:type_name -> tolo.operation.v1.LineGuidance
+	9,  // 15: tolo.operation.v1.DeliveryPayload.staff_message:type_name -> tolo.operation.v1.StaffMessage
+	28, // 16: tolo.operation.v1.GuestMessagesUpdate.upserts:type_name -> tolo.operation.v1.GuestMessage
+	49, // 17: tolo.operation.v1.GuestMessage.sent_at:type_name -> google.protobuf.Timestamp
+	30, // 18: tolo.operation.v1.FlowProposals.route_importances:type_name -> tolo.operation.v1.RouteImportance
+	31, // 19: tolo.operation.v1.FlowProposals.direction_proposals:type_name -> tolo.operation.v1.DirectionProposal
+	32, // 20: tolo.operation.v1.FlowProposals.restriction_proposals:type_name -> tolo.operation.v1.RestrictionProposal
+	33, // 21: tolo.operation.v1.FlowProposals.detour_proposals:type_name -> tolo.operation.v1.DetourProposal
+	34, // 22: tolo.operation.v1.FlowProposals.boundary_controls:type_name -> tolo.operation.v1.BoundaryControlProposal
+	49, // 23: tolo.operation.v1.FlowProposals.solved_at:type_name -> google.protobuf.Timestamp
+	2,  // 24: tolo.operation.v1.RouteImportance.direction:type_name -> tolo.operation.v1.RouteDirection
+	2,  // 25: tolo.operation.v1.DirectionProposal.proposed_direction:type_name -> tolo.operation.v1.RouteDirection
+	3,  // 26: tolo.operation.v1.DirectionProposal.change:type_name -> tolo.operation.v1.DirectionChange
+	4,  // 27: tolo.operation.v1.RestrictionProposal.action:type_name -> tolo.operation.v1.RestrictionAction
+	5,  // 28: tolo.operation.v1.RestrictionProposal.reason:type_name -> tolo.operation.v1.RestrictionReason
+	6,  // 29: tolo.operation.v1.BoundaryControlProposal.action:type_name -> tolo.operation.v1.BoundaryAction
+	36, // 30: tolo.operation.v1.LineGuidance.queues:type_name -> tolo.operation.v1.QueueSummary
+	37, // 31: tolo.operation.v1.LineGuidance.changes:type_name -> tolo.operation.v1.QueueChange
+	38, // 32: tolo.operation.v1.LineGuidance.recommendations:type_name -> tolo.operation.v1.GateRecommendation
+	39, // 33: tolo.operation.v1.LineGuidance.availability:type_name -> tolo.operation.v1.GateAvailability
+	40, // 34: tolo.operation.v1.LineGuidance.shape_proposals:type_name -> tolo.operation.v1.QueueShapeProposal
+	7,  // 35: tolo.operation.v1.QueueChange.kind:type_name -> tolo.operation.v1.QueueChangeKind
+	41, // 36: tolo.operation.v1.QueueShapeProposal.lane_changes:type_name -> tolo.operation.v1.LaneChange
+	8,  // 37: tolo.operation.v1.LaneChange.action:type_name -> tolo.operation.v1.LaneAction
+	43, // 38: tolo.operation.v1.FeedbackValues.entries:type_name -> tolo.operation.v1.FeedbackEntry
+	49, // 39: tolo.operation.v1.FeedbackValues.computed_at:type_name -> google.protobuf.Timestamp
+	49, // 40: tolo.operation.v1.UpdateConnectionStateRequest.at:type_name -> google.protobuf.Timestamp
+	49, // 41: tolo.operation.v1.GetHistoryDigestRequest.from:type_name -> google.protobuf.Timestamp
+	49, // 42: tolo.operation.v1.GetHistoryDigestRequest.to:type_name -> google.protobuf.Timestamp
+	49, // 43: tolo.operation.v1.HistoryDigest.from:type_name -> google.protobuf.Timestamp
+	49, // 44: tolo.operation.v1.HistoryDigest.to:type_name -> google.protobuf.Timestamp
+	48, // 45: tolo.operation.v1.HistoryDigest.entries:type_name -> tolo.operation.v1.DigestEntry
+	10, // 46: tolo.operation.v1.StaffCommunicationService.SendStaffMessage:input_type -> tolo.operation.v1.SendStaffMessageRequest
+	11, // 47: tolo.operation.v1.StaffCommunicationService.RevokeStaffMessage:input_type -> tolo.operation.v1.RevokeStaffMessageRequest
+	13, // 48: tolo.operation.v1.StaffCommunicationService.ShareGuidanceInfo:input_type -> tolo.operation.v1.ShareGuidanceInfoRequest
+	14, // 49: tolo.operation.v1.StaffCommunicationService.ListStaffMessages:input_type -> tolo.operation.v1.ListStaffMessagesRequest
+	17, // 50: tolo.operation.v1.OperationControlService.DirectReassignment:input_type -> tolo.operation.v1.DirectReassignmentRequest
+	18, // 51: tolo.operation.v1.OperationControlService.ApplyReassignment:input_type -> tolo.operation.v1.ApplyReassignmentRequest
+	19, // 52: tolo.operation.v1.OperationControlService.ListReassignments:input_type -> tolo.operation.v1.ListReassignmentsRequest
+	21, // 53: tolo.operation.v1.DeliveryCoordinationService.RequestProposalDelivery:input_type -> tolo.operation.v1.RequestProposalDeliveryRequest
+	23, // 54: tolo.operation.v1.DeliveryCoordinationService.RecordFeedbackValues:input_type -> tolo.operation.v1.RecordFeedbackValuesRequest
+	44, // 55: tolo.operation.v1.DeliveryCoordinationService.UpdateConnectionState:input_type -> tolo.operation.v1.UpdateConnectionStateRequest
+	46, // 56: tolo.operation.v1.DigestService.GetHistoryDigest:input_type -> tolo.operation.v1.GetHistoryDigestRequest
+	9,  // 57: tolo.operation.v1.StaffCommunicationService.SendStaffMessage:output_type -> tolo.operation.v1.StaffMessage
+	12, // 58: tolo.operation.v1.StaffCommunicationService.RevokeStaffMessage:output_type -> tolo.operation.v1.RevokeStaffMessageResponse
+	9,  // 59: tolo.operation.v1.StaffCommunicationService.ShareGuidanceInfo:output_type -> tolo.operation.v1.StaffMessage
+	15, // 60: tolo.operation.v1.StaffCommunicationService.ListStaffMessages:output_type -> tolo.operation.v1.ListStaffMessagesResponse
+	16, // 61: tolo.operation.v1.OperationControlService.DirectReassignment:output_type -> tolo.operation.v1.Reassignment
+	16, // 62: tolo.operation.v1.OperationControlService.ApplyReassignment:output_type -> tolo.operation.v1.Reassignment
+	20, // 63: tolo.operation.v1.OperationControlService.ListReassignments:output_type -> tolo.operation.v1.ListReassignmentsResponse
+	22, // 64: tolo.operation.v1.DeliveryCoordinationService.RequestProposalDelivery:output_type -> tolo.operation.v1.RequestProposalDeliveryResponse
+	24, // 65: tolo.operation.v1.DeliveryCoordinationService.RecordFeedbackValues:output_type -> tolo.operation.v1.RecordFeedbackValuesResponse
+	45, // 66: tolo.operation.v1.DeliveryCoordinationService.UpdateConnectionState:output_type -> tolo.operation.v1.UpdateConnectionStateResponse
+	47, // 67: tolo.operation.v1.DigestService.GetHistoryDigest:output_type -> tolo.operation.v1.HistoryDigest
+	57, // [57:68] is the sub-list for method output_type
+	46, // [46:57] is the sub-list for method input_type
+	46, // [46:46] is the sub-list for extension type_name
+	46, // [46:46] is the sub-list for extension extendee
+	0,  // [0:46] is the sub-list for field type_name
 }
 
 func init() { file_tolo_operation_v1_operation_proto_init() }
@@ -3308,10 +3624,15 @@ func file_tolo_operation_v1_operation_proto_init() {
 		(*RequestProposalDeliveryRequest_FlowProposals)(nil),
 		(*RequestProposalDeliveryRequest_LineGuidance)(nil),
 	}
-	file_tolo_operation_v1_operation_proto_msgTypes[17].OneofWrappers = []any{}
-	file_tolo_operation_v1_operation_proto_msgTypes[19].OneofWrappers = []any{}
+	file_tolo_operation_v1_operation_proto_msgTypes[17].OneofWrappers = []any{
+		(*DeliveryPayload_FlowProposals)(nil),
+		(*DeliveryPayload_LineGuidance)(nil),
+		(*DeliveryPayload_StaffMessage)(nil),
+	}
+	file_tolo_operation_v1_operation_proto_msgTypes[21].OneofWrappers = []any{}
 	file_tolo_operation_v1_operation_proto_msgTypes[23].OneofWrappers = []any{}
-	file_tolo_operation_v1_operation_proto_msgTypes[35].OneofWrappers = []any{
+	file_tolo_operation_v1_operation_proto_msgTypes[27].OneofWrappers = []any{}
+	file_tolo_operation_v1_operation_proto_msgTypes[39].OneofWrappers = []any{
 		(*DigestEntry_PointId)(nil),
 		(*DigestEntry_RouteId)(nil),
 		(*DigestEntry_QueueId)(nil),
@@ -3322,7 +3643,7 @@ func file_tolo_operation_v1_operation_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_tolo_operation_v1_operation_proto_rawDesc), len(file_tolo_operation_v1_operation_proto_rawDesc)),
 			NumEnums:      9,
-			NumMessages:   36,
+			NumMessages:   40,
 			NumExtensions: 0,
 			NumServices:   4,
 		},

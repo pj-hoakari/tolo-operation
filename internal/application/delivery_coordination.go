@@ -5,12 +5,12 @@ package application
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
 	"time"
 
+	operationv1 "github.com/pj-hoakari/tolo-operation/gen/tolo/operation/v1"
 	"github.com/pj-hoakari/tolo-operation/internal/domain"
 	"github.com/pj-hoakari/tolo-operation/internal/repository"
 )
@@ -34,10 +34,9 @@ type RecordFeedbackValuesInput struct {
 }
 
 type RequestProposalDeliveryInput struct {
-	TenantID        string
-	EventID         string
-	ProposalKind    domain.ProposalKind
-	ProposalContent json.RawMessage
+	TenantID string
+	EventID  string
+	Proposal *operationv1.DeliveryPayload
 }
 
 type DeliveryResult struct {
@@ -93,7 +92,7 @@ func (s *DeliveryCoordinationService) RequestProposalDelivery(
 		return DeliveryResult{}, err
 	}
 
-	proposal, err := domain.NewProposal(input.ProposalKind, input.ProposalContent)
+	proposal, err := domain.NewProposal(input.Proposal)
 	if err != nil {
 		return DeliveryResult{}, err
 	}
@@ -111,11 +110,11 @@ func (s *DeliveryCoordinationService) RequestProposalDelivery(
 	route := domain.RouteDelivery(domain.SelectRecipients(states), states)
 
 	if len(route.Realtime) > 0 {
-		message, err := domain.NewOutboxMessage(domain.DeliveryOrder{
-			DeliveryID:       deliveryID,
-			EventID:          eventID,
-			RecipientUserIDs: route.Realtime,
-			Payload:          proposal,
+		message, err := domain.NewOutboxMessage(domain.TopicRealtimeDelivery, eventID, &operationv1.DeliveryOrder{
+			DeliveryId:       string(deliveryID),
+			EventId:          eventID,
+			RecipientUserIds: route.Realtime,
+			Payload:          proposal.Payload,
 		})
 		if err != nil {
 			return DeliveryResult{}, err

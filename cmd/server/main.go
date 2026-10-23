@@ -11,6 +11,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/ThreeDotsLabs/watermill/message"
+
 	"github.com/pj-hoakari/tolo-operation/internal/application"
 	connectinfra "github.com/pj-hoakari/tolo-operation/internal/infra/connect"
 	dbinfra "github.com/pj-hoakari/tolo-operation/internal/infra/db"
@@ -125,7 +127,12 @@ func run() error {
 		ErrorLog: slog.NewLogLogger(slog.Default().Handler(), slog.LevelError),
 	}
 
-	dispatcher := application.NewOutboxDispatcher(outbox, pubsub.NewLogPublisher(), outboxMaxAttempts)
+	publisher, err := newPublisher(ctx)
+	if err != nil {
+		return err
+	}
+
+	dispatcher := application.NewOutboxDispatcher(outbox, pubsub.NewOutboxPublisher(publisher), outboxMaxAttempts)
 	dispatcherDone := make(chan struct{})
 
 	go func() {
@@ -137,6 +144,10 @@ func run() error {
 	defer func() {
 		stop()
 		<-dispatcherDone
+
+		if err := publisher.Close(); err != nil {
+			slog.Error("close publisher failed", "error", err)
+		}
 	}()
 
 	serveErr := make(chan error, 1)
@@ -182,6 +193,22 @@ func newLogger() (*slog.Logger, error) {
 		// Logging cannot correlate them with the trace.
 		ProjectID: os.Getenv("GOOGLE_CLOUD_PROJECT"),
 	}), nil
+}
+
+func newPublisher(ctx context.Context) (message.Publisher, error) {
+	natsURL := os.Getenv("NATS_URL")
+	projectID := os.Getenv("PUBSUB_PROJECT_ID")
+
+	switch {
+	case natsURL != "" && projectID != "":
+		return nil, errors.New("set only one of NATS_URL and PUBSUB_PROJECT_ID")
+	case natsURL != "":
+		return pubsub.NewNATSPublisher(ctx, natsURL)
+	case projectID != "":
+		return pubsub.NewGooglePublisher(projectID)
+	default:
+		return nil, errors.New("NATS_URL or PUBSUB_PROJECT_ID is required")
+	}
 }
 
 // shutdownTracingWithTimeout flushes pending spans on a fresh context, because
