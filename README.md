@@ -43,6 +43,7 @@ task up:build
 Compose の `migrate` サービスは `Dockerfile` の `migrate` ターゲットをビルドして起動するため、`migrations/` を追加・変更したあとは `--build` 付き（`docker compose up --build` または `task up:build`）で起動し直す  
 `task up` はイメージを再ビルドしないので、古いマイグレーションのままになる  
 Compose は他サービスを起動せず、`mockdeps` が依存先の代わりを務める（`cmd/mockdeps`、開発専用）  
+outbox の publish 先のブローカーとして、NATS JetStream の `nats` サービスも起動する（`server` の `NATS_URL` は `nats://nats:4222`）  
 `mockdeps` は次の 2 つを 1 つのポートで提供する
 
 - `GET /.well-known/jwks.json`: 起動時に生成した ES256 鍵の JWKS。`server` の `INTERNAL_JWKS_URL` はここを指す
@@ -61,7 +62,9 @@ Compose は他サービスを起動せず、`mockdeps` が依存先の代わり�
 | `INTERNAL_JWKS_URL` | `http://gateway:8080/.well-known/jwks.json` | 内部 JWT の検証に使う JWKS の取得先（Compose では `mockdeps` の `http://mockdeps:8080/.well-known/jwks.json`） |
 | `INTERNAL_JWT_ISSUER` | `service-gateway` | 内部 JWT に期待する `iss` |
 | `INTERNAL_JWT_AUDIENCE` | `tolo-operation` | 内部 JWT に期待する `aud` |
-| `OUTBOX_DISPATCH_INTERVAL` | `1s` | outbox に積んだメッセージを publish する間隔（Go の duration 形式）。publish は当面ログに出力するだけで、ブローカーへは送らない |
+| `OUTBOX_DISPATCH_INTERVAL` | `1s` | outbox に積んだメッセージを publish する間隔（Go の duration 形式）。publish 先は `NATS_URL` か `PUBSUB_PROJECT_ID` で選ぶ |
+| `NATS_URL` | なし | outbox の publish 先にする NATS JetStream の接続先（Compose では `nats://nats:4222`）。`PUBSUB_PROJECT_ID` とどちらか一方だけを設定する。起動時に `guest-messages` と `realtime-delivery` のストリームを用意する |
+| `PUBSUB_PROJECT_ID` | なし | outbox の publish 先にする Cloud Pub/Sub のプロジェクト。`NATS_URL` とどちらか一方だけを設定する。イベント ID を ordering key にして publish する。どちらも未設定か両方を設定すると、サーバーは起動しない |
 | `LOG_LEVEL` | `info` | ログに出力する最小レベル。`debug`／`info`／`warn`（`warning` も同義）／`error`／`critical` を取り、未知の値ならサーバーは起動しない |
 | `GOOGLE_CLOUD_PROJECT` | なし | 設定するとログの `logging.googleapis.com/trace` を `projects/<project>/traces/<trace_id>` 形式にし、Cloud Logging でトレースと相関させる。未設定なら素のトレース ID を出力する |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` / `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` | なし | どちらかを設定したときだけ OTLP/HTTP で span を export する。未設定ならトレーシングは無効 |
