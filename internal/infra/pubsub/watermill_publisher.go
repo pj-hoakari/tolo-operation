@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"time"
 
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill-googlecloud/v2/pkg/googlecloud"
@@ -39,13 +40,13 @@ func (p *OutboxPublisher) Publish(ctx context.Context, outbox domain.OutboxMessa
 	return nil
 }
 
-func NewNATSPublisher(ctx context.Context, url string) (message.Publisher, error) {
+func NewNATSPublisher(ctx context.Context, url string, maxAge time.Duration) (message.Publisher, error) {
 	conn, err := nats.Connect(url)
 	if err != nil {
 		return nil, fmt.Errorf("connect to NATS: %w", err)
 	}
 
-	if err := provisionStreams(ctx, conn); err != nil {
+	if err := provisionStreams(ctx, conn, maxAge); err != nil {
 		conn.Close()
 
 		return nil, err
@@ -67,7 +68,7 @@ func NewNATSPublisher(ctx context.Context, url string) (message.Publisher, error
 	return publisher, nil
 }
 
-func provisionStreams(ctx context.Context, conn *nats.Conn) error {
+func provisionStreams(ctx context.Context, conn *nats.Conn, maxAge time.Duration) error {
 	js, err := natsjetstream.New(conn)
 	if err != nil {
 		return fmt.Errorf("open JetStream: %w", err)
@@ -77,6 +78,7 @@ func provisionStreams(ctx context.Context, conn *nats.Conn) error {
 		if _, err := js.CreateOrUpdateStream(ctx, natsjetstream.StreamConfig{
 			Name:     string(topic),
 			Subjects: []string{string(topic)},
+			MaxAge:   maxAge,
 		}); err != nil {
 			return fmt.Errorf("provision the %s stream: %w", topic, err)
 		}

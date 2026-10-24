@@ -64,6 +64,7 @@ outbox の publish 先のブローカーとして、NATS JetStream の `nats` �
 | `INTERNAL_JWT_AUDIENCE` | `tolo-operation` | 内部 JWT に期待する `aud` |
 | `OUTBOX_DISPATCH_INTERVAL` | `1s` | outbox に積んだメッセージを publish する間隔（Go の duration 形式）。publish 先は `NATS_URL` か `PUBSUB_PROJECT_ID` で選ぶ |
 | `NATS_URL` | なし | outbox の publish 先にする NATS JetStream の接続先（Compose では `nats://nats:4222`）。`PUBSUB_PROJECT_ID` とどちらか一方だけを設定する。起動時に `guest-messages` と `realtime-delivery` のストリームを用意する |
+| `NATS_STREAM_MAX_AGE` | `24h` | `NATS_URL` を設定したときに、起動時に用意するストリームの保存期限（Go の duration 形式。`1d` は使えないので `24h` と書く）。期限を過ぎたメッセージは配送の済み・未済にかかわらず消える。duration として読めない値か 0 以下の値なら、サーバーは起動しない |
 | `PUBSUB_PROJECT_ID` | なし | outbox の publish 先にする Cloud Pub/Sub のプロジェクト。`NATS_URL` とどちらか一方だけを設定する。イベント ID を ordering key にして publish する。どちらも未設定か両方を設定すると、サーバーは起動しない |
 | `LOG_LEVEL` | `info` | ログに出力する最小レベル。`debug`／`info`／`warn`（`warning` も同義）／`error`／`critical` を取り、未知の値ならサーバーは起動しない |
 | `GOOGLE_CLOUD_PROJECT` | なし | 設定するとログの `logging.googleapis.com/trace` を `projects/<project>/traces/<trace_id>` 形式にし、Cloud Logging でトレースと相関させる。未設定なら素のトレース ID を出力する |
