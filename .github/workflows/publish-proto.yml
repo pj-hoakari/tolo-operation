@@ -24,12 +24,12 @@ jobs:
 
             - name: Resolve version and tags
               id: version
-              uses: pj-hoakari/actions/resolve-version@e5cc4b20767674fe5af61af03625d778f7ec3acf # v20261013.0.0
+              uses: pj-hoakari/actions/resolve-version@92b346752a66ad19a36fbc929191603f72e00fe9 # v20261020.0.2
               with:
                   version: ${{ inputs.version }}
 
             - name: Push proto artifact
-              uses: pj-hoakari/actions/publish-proto@e5cc4b20767674fe5af61af03625d778f7ec3acf # v20261013.0.0
+              uses: pj-hoakari/actions/publish-proto@92b346752a66ad19a36fbc929191603f72e00fe9 # v20261020.0.2
               with:
                   version: ${{ steps.version.outputs.version }}
                   tags: ${{ steps.version.outputs.tags }}
