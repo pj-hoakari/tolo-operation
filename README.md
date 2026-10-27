@@ -209,4 +209,5 @@ oras pull ghcr.io/pj-hoakari/tolo-kernel-proto:<version> -o proto
 oras pull ghcr.io/pj-hoakari/protoc-gen-authz-go-proto:<version> -o proto
 ```
 
-版は、このリポジトリの `go.mod` が参照する `github.com/pj-hoakari/tolo-kernel-proto` と `github.com/pj-hoakari/protoc-gen-authz-go` の版にそろえる（タグは先頭の `v` を除いた値）
+版は、このリポジトリの `go.mod` が参照する `github.com/pj-hoakari/tolo-kernel-proto` と `github.com/pj-hoakari/protoc-gen-authz-go` の版以上にする（タグは先頭の `v` を除いた値）  
+ほかのサービスの `.proto` と同じディレクトリに展開するときは、各サービスの `go.mod` が参照する版のうち、最も新しいものを使う
