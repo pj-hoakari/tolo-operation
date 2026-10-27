@@ -26,6 +26,8 @@ golangci-lint run
 
 `go test ./...` は統合テストで PostgreSQL コンテナを起動するため、Docker が必要
 
+`task proto:breaking` は、最新のリリースタグの `.proto` と比べて互換性を壊す変更がないかを `buf breaking` で検査する。CI でも同じ検査を行う
+
 ### Docker Compose での起動
 
 Docker Compose で PostgreSQL、golang-migrate によるマイグレーション、開発サーバー、依存先のモック（`mockdeps`）を起動できる
@@ -194,4 +196,18 @@ golang-migrate CLI は接続先を環境変数からは読まないため、`-da
 oras pull ghcr.io/<owner>/<repo>-proto:latest -o proto
 ```
 
-取得した `.proto` は `buf` や `protoc` の入力としてそのまま利用できる
+中身は `tolo/operation/v1/operation.proto` だけである  
+`operation.proto` は `tolo/kernel/v1/kernel.proto` と `authz/v1/options.proto` を import するので、`buf` や `protoc` の入力にするには、それぞれの成果物も同じディレクトリに展開する
+
+| proto | アーティファクト |
+| --- | --- |
+| `tolo/kernel/v1/kernel.proto` | `ghcr.io/pj-hoakari/tolo-kernel-proto` |
+| `authz/v1/options.proto` | `ghcr.io/pj-hoakari/protoc-gen-authz-go-proto` |
+
+```bash
+oras pull ghcr.io/pj-hoakari/tolo-kernel-proto:<version> -o proto
+oras pull ghcr.io/pj-hoakari/protoc-gen-authz-go-proto:<version> -o proto
+```
+
+版は、このリポジトリの `go.mod` が参照する `github.com/pj-hoakari/tolo-kernel-proto` と `github.com/pj-hoakari/protoc-gen-authz-go` の版以上にする（タグは先頭の `v` を除いた値）  
+ほかのサービスの `.proto` と同じディレクトリに展開するときは、各サービスの `go.mod` が参照する版のうち、最も新しいものを使う
