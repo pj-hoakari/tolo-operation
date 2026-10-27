@@ -196,4 +196,17 @@ golang-migrate CLI は接続先を環境変数からは読まないため、`-da
 oras pull ghcr.io/<owner>/<repo>-proto:latest -o proto
 ```
 
-取得した `.proto` は `buf` や `protoc` の入力としてそのまま利用できる
+中身は `tolo/operation/v1/operation.proto` だけである  
+`operation.proto` は `tolo/kernel/v1/kernel.proto` と `authz/v1/options.proto` を import するので、`buf` や `protoc` の入力にするには、それぞれの成果物も同じディレクトリに展開する
+
+| proto | アーティファクト |
+| --- | --- |
+| `tolo/kernel/v1/kernel.proto` | `ghcr.io/pj-hoakari/tolo-kernel-proto` |
+| `authz/v1/options.proto` | `ghcr.io/pj-hoakari/protoc-gen-authz-go-proto` |
+
+```bash
+oras pull ghcr.io/pj-hoakari/tolo-kernel-proto:<version> -o proto
+oras pull ghcr.io/pj-hoakari/protoc-gen-authz-go-proto:<version> -o proto
+```
+
+版は、このリポジトリの `go.mod` が参照する `github.com/pj-hoakari/tolo-kernel-proto` と `github.com/pj-hoakari/protoc-gen-authz-go` の版にそろえる（タグは先頭の `v` を除いた値）
