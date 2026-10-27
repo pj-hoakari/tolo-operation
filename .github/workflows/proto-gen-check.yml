@@ -45,3 +45,7 @@ jobs:
               with:
                   generate-task: proto:gen:go
                   generated-path: gen/
+
+            - name: Check breaking changes
+              if: steps.changes.outputs.changed == 'true'
+              run: task proto:breaking

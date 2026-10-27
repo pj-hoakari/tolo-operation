@@ -26,6 +26,8 @@ golangci-lint run
 
 `go test ./...` は統合テストで PostgreSQL コンテナを起動するため、Docker が必要
 
+`task proto:breaking` は、最新のリリースタグの `.proto` と比べて互換性を壊す変更がないかを `buf breaking` で検査する。CI でも同じ検査を行う
+
 ### Docker Compose での起動
 
 Docker Compose で PostgreSQL、golang-migrate によるマイグレーション、開発サーバー、依存先のモック（`mockdeps`）を起動できる
