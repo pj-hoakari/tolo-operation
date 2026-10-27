@@ -26,7 +26,7 @@ require (
 	github.com/jmoiron/sqlx v1.4.0
 	github.com/nats-io/nats.go v1.54.0
 	github.com/pj-hoakari/internal-jwt-handling v0.4.0
-	github.com/pj-hoakari/protoc-gen-authz-go v0.3.0
+	github.com/pj-hoakari/protoc-gen-authz-go v0.4.1
 	github.com/pj-hoakari/tolo-kernel-proto v0.4.0
 	github.com/testcontainers/testcontainers-go v0.44.0
 	github.com/testcontainers/testcontainers-go/modules/gcloud v0.44.0
