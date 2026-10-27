@@ -133,7 +133,12 @@ tasks:
                 git archive "$LATEST" proto | tar -x -C "$AGAINST"
 
                 echo "buf breaking against ${LATEST}"
-                buf breaking --against "$AGAINST"
+                if ! buf breaking --against "$AGAINST"; then
+                  if [ "{{.ALLOW_BREAKING}}" != "true" ]; then
+                    exit 1
+                  fi
+                  echo "ALLOW_BREAKING=true のため、互換性を壊す変更を許容します"
+                fi
 
     proto:gen:go:
         desc: Regenerate connect-go code from proto.

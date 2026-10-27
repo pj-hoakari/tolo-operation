@@ -28,6 +28,8 @@ golangci-lint run
 
 `task proto:breaking` は、最新のリリースタグの `.proto` と比べて互換性を壊す変更がないかを `buf breaking` で検査する。CI でも同じ検査を行う
 
+互換性を意図して壊すときは、`ALLOW_BREAKING=true task proto:breaking` で検査する。違反を表示したうえで成功として終わる。CI の `proto-breaking` ジョブは必須のチェックではないため、失敗したままでもマージできる。マージしたあとは、次のリリースタグを打つまでこのジョブが失敗し続ける
+
 ### Docker Compose での起動
 
 Docker Compose で PostgreSQL、golang-migrate によるマイグレーション、開発サーバー、依存先のモック（`mockdeps`）を起動できる
