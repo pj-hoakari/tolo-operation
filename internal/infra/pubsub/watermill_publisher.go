@@ -12,6 +12,8 @@ import (
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/nats-io/nats.go"
 	natsjetstream "github.com/nats-io/nats.go/jetstream"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/propagation"
 
 	"github.com/pj-hoakari/tolo-operation/internal/domain"
 )
@@ -32,6 +34,7 @@ func (p *OutboxPublisher) Publish(ctx context.Context, outbox domain.OutboxMessa
 	msg := message.NewMessage(watermill.NewUUID(), outbox.Payload)
 	msg.Metadata.Set(EventIDMetadataKey, outbox.OrderingKey)
 	msg.SetContext(ctx)
+	otel.GetTextMapPropagator().Inject(ctx, propagation.MapCarrier(msg.Metadata))
 
 	if err := p.publisher.Publish(string(outbox.Topic), msg); err != nil {
 		return fmt.Errorf("publish to %s: %w", outbox.Topic, err)

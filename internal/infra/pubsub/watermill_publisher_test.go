@@ -10,11 +10,15 @@ import (
 
 	gcpubsub "cloud.google.com/go/pubsub/v2"
 	"cloud.google.com/go/pubsub/v2/apiv1/pubsubpb"
+	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/nats-io/nats.go"
 	natsjetstream "github.com/nats-io/nats.go/jetstream"
 	"github.com/testcontainers/testcontainers-go"
 	tcpubsub "github.com/testcontainers/testcontainers-go/modules/gcloud/pubsub"
 	"github.com/testcontainers/testcontainers-go/wait"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/propagation"
+	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/protobuf/proto"
 
 	operationv1 "github.com/pj-hoakari/tolo-operation/gen/tolo/operation/v1"
@@ -212,4 +216,51 @@ func receive(ctx context.Context, t *testing.T, subscriber *gcpubsub.Subscriber,
 	}
 
 	return received
+}
+
+type recordingPublisher struct {
+	messages []*message.Message
+}
+
+func (p *recordingPublisher) Publish(_ string, messages ...*message.Message) error {
+	p.messages = append(p.messages, messages...)
+
+	return nil
+}
+
+func (p *recordingPublisher) Close() error {
+	return nil
+}
+
+func TestOutboxPublisherCarriesTheTraceContextInTheMetadata(t *testing.T) {
+	previous := otel.GetTextMapPropagator()
+
+	otel.SetTextMapPropagator(propagation.TraceContext{})
+	t.Cleanup(func() { otel.SetTextMapPropagator(previous) })
+
+	traceID := trace.TraceID{0x4b, 0xf9, 0x2f, 0x35, 0x77, 0xb3, 0x4d, 0xa6, 0xa3, 0xce, 0x92, 0x9d, 0x0e, 0x0e, 0x47, 0x36}
+	spanID := trace.SpanID{0x00, 0xf0, 0x67, 0xaa, 0x0b, 0xa9, 0x02, 0xb7}
+	ctx := trace.ContextWithSpanContext(context.Background(), trace.NewSpanContext(trace.SpanContextConfig{
+		TraceID:    traceID,
+		SpanID:     spanID,
+		TraceFlags: trace.FlagsSampled,
+		TraceState: trace.TraceState{},
+		Remote:     false,
+	}))
+
+	recorder := &recordingPublisher{messages: nil}
+	outbox := domain.OutboxMessage{Topic: domain.TopicGuestMessages, OrderingKey: "event-1", Payload: []byte("payload")}
+
+	if err := pubsub.NewOutboxPublisher(recorder).Publish(ctx, outbox); err != nil {
+		t.Fatalf("Publish: %v", err)
+	}
+
+	if len(recorder.messages) != 1 {
+		t.Fatalf("published %d messages, want 1", len(recorder.messages))
+	}
+
+	want := "00-" + traceID.String() + "-" + spanID.String() + "-01"
+	if got := recorder.messages[0].Metadata.Get("traceparent"); got != want {
+		t.Errorf("traceparent = %q, want %q", got, want)
+	}
 }
