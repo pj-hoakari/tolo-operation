@@ -2085,6 +2085,7 @@ type RestrictionProposal struct {
 	LimitValue    *float64               `protobuf:"fixed64,3,opt,name=limit_value,json=limitValue,proto3,oneof" json:"limit_value,omitempty"`
 	Reason        RestrictionReason      `protobuf:"varint,4,opt,name=reason,proto3,enum=tolo.operation.v1.RestrictionReason" json:"reason,omitempty"`
 	Confidence    float64                `protobuf:"fixed64,5,opt,name=confidence,proto3" json:"confidence,omitempty"`
+	LimitRatio    *float64               `protobuf:"fixed64,6,opt,name=limit_ratio,json=limitRatio,proto3,oneof" json:"limit_ratio,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2150,6 +2151,13 @@ func (x *RestrictionProposal) GetReason() RestrictionReason {
 func (x *RestrictionProposal) GetConfidence() float64 {
 	if x != nil {
 		return x.Confidence
+	}
+	return 0
+}
+
+func (x *RestrictionProposal) GetLimitRatio() float64 {
+	if x != nil && x.LimitRatio != nil {
+		return *x.LimitRatio
 	}
 	return 0
 }
@@ -3310,7 +3318,7 @@ const file_tolo_operation_v1_operation_proto_rawDesc = "" +
 	"\x06change\x18\x03 \x01(\x0e2\".tolo.operation.v1.DirectionChangeR\x06change\x12\x1e\n" +
 	"\n" +
 	"confidence\x18\x04 \x01(\x01R\n" +
-	"confidence\"\x82\x02\n" +
+	"confidence\"\xb8\x02\n" +
 	"\x13RestrictionProposal\x12\x19\n" +
 	"\broute_id\x18\x01 \x01(\tR\arouteId\x12<\n" +
 	"\x06action\x18\x02 \x01(\x0e2$.tolo.operation.v1.RestrictionActionR\x06action\x12$\n" +
@@ -3319,8 +3327,11 @@ const file_tolo_operation_v1_operation_proto_rawDesc = "" +
 	"\x06reason\x18\x04 \x01(\x0e2$.tolo.operation.v1.RestrictionReasonR\x06reason\x12\x1e\n" +
 	"\n" +
 	"confidence\x18\x05 \x01(\x01R\n" +
-	"confidenceB\x0e\n" +
-	"\f_limit_value\"u\n" +
+	"confidence\x12$\n" +
+	"\vlimit_ratio\x18\x06 \x01(\x01H\x01R\n" +
+	"limitRatio\x88\x01\x01B\x0e\n" +
+	"\f_limit_valueB\x0e\n" +
+	"\f_limit_ratio\"u\n" +
 	"\x0eDetourProposal\x12&\n" +
 	"\x0forigin_route_id\x18\x01 \x01(\tR\roriginRouteId\x12\x1b\n" +
 	"\troute_ids\x18\x02 \x03(\tR\brouteIds\x12\x1e\n" +
