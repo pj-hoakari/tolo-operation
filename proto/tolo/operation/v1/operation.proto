@@ -255,6 +255,7 @@ message RestrictionProposal {
   optional double limit_value = 3;
   RestrictionReason reason = 4;
   double confidence = 5;
+  optional double limit_ratio = 6;
 }
 enum RestrictionAction {
   RESTRICTION_ACTION_UNSPECIFIED = 0;

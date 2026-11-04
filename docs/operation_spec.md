@@ -257,6 +257,7 @@ message RestrictionProposal {
   optional double limit_value = 3;  // action=LIMIT のときの上限（人/分）
   RestrictionReason reason = 4;
   double confidence = 5;
+  optional double limit_ratio = 6;  // action=LIMIT のときの上限を、制限するルートの今回の流量に対する割合で表した値
 }
 enum RestrictionAction {
   RESTRICTION_ACTION_UNSPECIFIED = 0;
@@ -415,6 +416,9 @@ message DigestEntry {
 - 提案・行列案内・フィードバック値の型は本サービスが定義し、Flow Control／Line Control の proto（`tolo.flow.v1`／`tolo.line.v1`）を import しない
   観測が腐敗防止層として Flow／Line の応答から本サービスの型へ変換する（Observation）。Flow／Line が型を変えても、観測の変換を直すまで本サービスの型は変わらない
   フィードバック値の種類（`FeedbackEntry.kind`）の語彙と、どの値を載せるかは実装フェーズで確定する
+- 通行制限提案の `limit_ratio` は `limit_value` を制限するルートの今回の流量で割った値である。流量は方向別の流量を両方向で足した値とする
+  `limit_value` がないとき、流量が 0（1e-9 以下）のとき、ルートにスカラー型の観測しかないときは、`limit_ratio` を持たない。本サービスは欠けた `limit_ratio` を欠けたまま配信し、0 で埋めない
+  人/分の `limit_value` は観測点のゲインでずれるが、割合ではゲインが打ち消し合う。ただし `reason=OVERLOAD` の上限は絶対値の容量なので、その `limit_ratio` はゲインで変わる目安である（Flow Control 数理 v0 §11.2.4、ADR-0131）
 - ゲート開閉・観測点設定変更は誘導への介入として観測が直接受ける（Observation の OperateGate／UpdateObservationPointConfig）。本サービスから観測への同期 RPC は存在しない
 - ゲスト向け表示の文言化・表示名の付与は Guest Service が担う（Guest Service）
   本サービスがゲストへ push するスタッフメッセージは、スタッフが書いた本文のままで文言化は行わない

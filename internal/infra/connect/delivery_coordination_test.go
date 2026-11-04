@@ -205,12 +205,12 @@ func TestRecordFeedbackValuesRejectsAnEventToken(t *testing.T) {
 func TestRequestProposalDeliveryPassesEitherPayloadAndAnswersTheCounts(t *testing.T) {
 	t.Parallel()
 
-	limit := 12.5
 	flow := &operationv1.FlowProposals{
 		RestrictionProposals: []*operationv1.RestrictionProposal{{
 			RouteId:    "route-a",
 			Action:     operationv1.RestrictionAction_RESTRICTION_ACTION_LIMIT,
-			LimitValue: &limit,
+			LimitValue: proto.Float64(12.5),
+			LimitRatio: proto.Float64(0.6),
 		}},
 	}
 	line := &operationv1.LineGuidance{

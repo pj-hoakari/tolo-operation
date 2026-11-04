@@ -278,3 +278,64 @@ func TestRequestProposalDeliveryFailsBeforePushingWhenTheRealtimeEnqueueFails(t 
 		t.Errorf("SendPush called %d times, want none so that a retried request does not push twice", len(deps.notifier.requests))
 	}
 }
+
+func TestRequestProposalDeliveryKeepsTheLimitRatioOfARestrictionAsGiven(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name  string
+		ratio *float64
+	}{
+		{"with a ratio", proto.Float64(0.6)},
+		{"with a zero ratio", proto.Float64(0)},
+		{"without a ratio", nil},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			service, deps := newProposalDelivery(t)
+			deps.states.EXPECT().ListByEvent(gomock.Any(), gomock.Any(), gomock.Any()).Return([]domain.ConnectionState{
+				state("staff-a", "phone", true),
+			}, nil)
+
+			var enqueued domain.OutboxMessage
+
+			deps.outbox.EXPECT().Enqueue(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, message domain.OutboxMessage) error {
+				enqueued = message
+
+				return nil
+			})
+
+			input := flowProposalInput()
+			input.Proposal = &operationv1.DeliveryPayload{Kind: &operationv1.DeliveryPayload_FlowProposals{FlowProposals: &operationv1.FlowProposals{
+				RestrictionProposals: []*operationv1.RestrictionProposal{{
+					RouteId:    "route-a",
+					Action:     operationv1.RestrictionAction_RESTRICTION_ACTION_LIMIT,
+					LimitValue: proto.Float64(12.5),
+					LimitRatio: tt.ratio,
+				}},
+			}}}
+
+			if _, err := service.RequestProposalDelivery(withServiceToken(), input); err != nil {
+				t.Fatalf("RequestProposalDelivery: %v", err)
+			}
+
+			order := decodeProto(t, enqueued.Payload, &operationv1.DeliveryOrder{})
+			got := order.GetPayload().GetFlowProposals().GetRestrictionProposals()[0]
+
+			if tt.ratio == nil {
+				if got.LimitRatio != nil {
+					t.Errorf("delivered limit_ratio = %v, want it absent as in the request", got.GetLimitRatio())
+				}
+
+				return
+			}
+
+			if got.LimitRatio == nil || got.GetLimitRatio() != *tt.ratio {
+				t.Errorf("delivered limit_ratio = %v (present %t), want %v", got.GetLimitRatio(), got.LimitRatio != nil, *tt.ratio)
+			}
+		})
+	}
+}
