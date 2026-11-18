@@ -12,7 +12,7 @@ tool (
 )
 
 require (
-	cloud.google.com/go/pubsub/v2 v2.8.1
+	cloud.google.com/go/pubsub/v2 v2.9.0
 	connectrpc.com/connect/v2 v2.0.2
 	connectrpc.com/otelconnect v0.12.0
 	github.com/ThreeDotsLabs/watermill v1.5.3
