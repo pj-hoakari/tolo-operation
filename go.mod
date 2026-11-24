@@ -24,7 +24,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.13.0
 	github.com/jmoiron/sqlx v1.4.0
-	github.com/nats-io/nats.go v1.55.0
+	github.com/nats-io/nats.go v1.56.0
 	github.com/pj-hoakari/internal-jwt-handling v0.5.1
 	github.com/pj-hoakari/protoc-gen-authz-go v0.4.2
 	github.com/pj-hoakari/tolo-kernel-proto v0.4.0
